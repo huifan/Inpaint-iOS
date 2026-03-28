@@ -162,7 +162,7 @@ class SmudgeDrawingView: UIView {
         // Step 1: Fill entire canvas with WHITE (all = to be inpainted / removed)
         // inpaint 期望白色=消除区域
         context.setFillColor(UIColor.white.cgColor)
-        context.fill(CGRect(x: 0, y: 0, width: w, height: h)
+        context.fill(CGRect(x: 0, y: 0, width: w, height: h))
 
         // Step 2: Draw user strokes as BLACK (subject = to be preserved / not removed)
         exportLineColor.setFill()
@@ -179,7 +179,7 @@ class SmudgeDrawingView: UIView {
         // Draw it to cover the background (white in mask = background to remove)
         if let maskImg = isnetMaskOverlay {
             // Draw the inverted mask directly (white=background=remove)
-            maskImg.draw(in: CGRect(x: 0, y: 0, width: w, height: h)
+            maskImg.draw(in: CGRect(x: 0, y: 0, width: w, height: h))
         }
 
         let result = UIGraphicsGetImageFromCurrentImageContext()
@@ -218,7 +218,7 @@ extension UIImage {
             space: colorSpace,
             bitmapInfo: CGImageAlphaInfo.none.rawValue
         ) else { return nil }
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height)
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         // Invert: 255 - value
         for i in 0..<pixelData.count {
