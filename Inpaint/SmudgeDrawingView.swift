@@ -13,11 +13,18 @@ class SmudgeDrawingView: UIView {
     private var paths = [UIBezierPath]()
     private var path: UIBezierPath = UIBezierPath()
     private var touchPoints: [CGPoint] = []
-    var smudgeColor: UIColor = UIColor(red: 0.00, green: 0.48, blue: 1.00, alpha: 0.5) // 默认为半透明的淡蓝色
+    var smudgeColor: UIColor = UIColor(red: 0.00, green: 0.48, blue: 1.00, alpha: 0.5) // 半透明的淡蓝色
     var exportLineColor: UIColor = .white // 涂抹部分导出时的颜色
     var exportBackgroundColor: UIColor = .black // 未涂抹部分导出时的颜色
     var brushSize: CGFloat = 20.0 // 默认笔刷大小
 
+    /// ISNet mask: grayscale UIImage (white=subject, black=background).
+    /// Set by ISNetService after auto-segmentation.
+    var isnetMaskOverlay: UIImage? {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
 
     init() {
         super.init(frame: .zero)
@@ -43,10 +50,7 @@ class SmudgeDrawingView: UIView {
             paths.forEach { path in
                 guard !path.isEmpty else { return }
                 var rect = path.bounds
-                // 要扩大path.width的半径
-                // 计算扩大的值，这里是路径宽度的一半
                 let expandBy = path.lineWidth / 2
-                // 扩大 CGRect
                 rect = rect.insetBy(dx: -expandBy, dy: -expandBy)
                 rect = CGRect(x: rect.origin.x * UIScreen.main.scale, y: rect.origin.y * UIScreen.main.scale, width: rect.size.width * UIScreen.main.scale, height: rect.size.height * UIScreen.main.scale)
                 rects.append(rect)
@@ -54,14 +58,10 @@ class SmudgeDrawingView: UIView {
             guard rects.count > 0 else {
                 return []
             }
-            // rects合成一个先，外边处理不了多个，多个为了后边做优化分别inpaint用
-            // 初始化一个空的矩形
             var combinedRect = CGRect.null
-            // 遍历数组并合并所有矩形
             for rect in rects {
                 combinedRect = combinedRect.union(rect)
             }
-            // 再往外扩一点避免有生硬的边界
             combinedRect = combinedRect.insetBy(dx: -5, dy: -5)
             return [combinedRect]
         }
@@ -90,57 +90,54 @@ class SmudgeDrawingView: UIView {
     func _touchesBegan(touchPoint: CGPoint) {
         path = UIBezierPath()
         path.lineWidth = brushSize
-        path.lineCapStyle = .round // 设置线帽为圆形，使曲线封闭部分为圆形
+        path.lineCapStyle = .round
         path.move(to: touchPoint)
         touchPoints.append(touchPoint)
     }
     
     @inline(__always)
     func _touchesMoved(touchPoint: CGPoint) {
-        // 计算上一个点和当前点的中间点
         let previousPoint = touchPoints.last ?? touchPoint
         let middlePoint = CGPoint(x: (touchPoint.x + previousPoint.x) / 2.0, y: (touchPoint.y + previousPoint.y) / 2.0)
-
-        // 添加二次贝塞尔曲线，使曲线更平滑
         path.addQuadCurve(to: middlePoint, controlPoint: previousPoint)
         touchPoints.append(touchPoint)
-
-        // 重绘当前触摸点附近的区域
         let redrawRect = CGRect(x: touchPoint.x - brushSize * 2, y: touchPoint.y - brushSize * 2,
                                 width: brushSize * 4, height: brushSize * 4)
         setNeedsDisplay(redrawRect)
     }
     
-    // 处理触摸结束事件
     @inline(__always)
     func _touchesEnded(touchPoint: CGPoint) {
-        // 添加最后一个点到路径中
         if let lastPoint = touchPoints.last {
             let middlePoint = CGPoint(x: (touchPoint.x + lastPoint.x) / 2.0, y: (touchPoint.y + lastPoint.y) / 2.0)
             path.addQuadCurve(to: middlePoint, controlPoint: lastPoint)
         }
-
         paths.append(path)
         path = UIBezierPath()
-        // 清除触摸点，为下一次绘制做准备
         touchPoints.removeAll()
-
-        // 重绘视图以显示最终的绘图
         self.setNeedsDisplay()
     }
 
     // 绘制方法
     override func draw(_ rect: CGRect) {
+        // Draw user brush strokes (semi-transparent blue)
         smudgeColor.setStroke()
         paths.forEach { path in
             path.stroke()
         }
         path.stroke()
 
-        // Draw ISNet mask overlay (tinted blue, semi-transparent)
+        // Draw ISNet mask preview:
+        // ISNet: white=subject, black=background
+        // Blue preview should appear on BACKGROUND (what will be removed)
+        // So we invert the mask: black in ISNet (background) → blue overlay
         if let maskImg = isnetMaskOverlay, let cg = maskImg.cgImage {
             guard let context = UIGraphicsGetCurrentContext() else { return }
             context.saveGState()
+
+            // Invert mask: use CGBlendMode.destinationOut to reveal blue on black ISNet pixels
+            // Black in ISNet mask (background) → transparent → blue fill shows through
+            // White in ISNet mask (subject) → covers blue fill
             context.clip(to: rect, mask: cg)
             UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.35).setFill()
             context.fill(rect)
@@ -148,20 +145,22 @@ class SmudgeDrawingView: UIView {
         }
     }
 
-    // 导出为灰度图像
+    // 导出为灰度图像（用于 inpainting）
+    // inpaint 期望：白色=消除区域，黑色=保留区域
+    // ISNet 输出：白色=主体（保留），黑色=背景（消除）
+    // 所以要取反 ISNet mask
     func exportAsGrayscaleImage() -> UIImage? {
         let screenScale = UIScreen.main.scale
-
         let scaledSize = CGSize(width: self.bounds.size.width * screenScale, height: self.bounds.size.height * screenScale)
 
         UIGraphicsBeginImageContextWithOptions(scaledSize, false, 1.0)
         guard let context = UIGraphicsGetCurrentContext() else { return nil }
 
-        // Draw background
+        // Step 1: Fill background - what to preserve (black = preserve in inpaint)
         exportBackgroundColor.setFill()
         context.fill(CGRect(x: 0, y: 0, width: scaledSize.width, height: scaledSize.height))
 
-        // Draw user strokes
+        // Step 2: Draw user strokes as white (will be inpainted)
         paths.forEach { path in
             let scaledPath = UIBezierPath(cgPath: path.cgPath)
             scaledPath.apply(CGAffineTransform(scaleX: screenScale, y: screenScale))
@@ -171,17 +170,20 @@ class SmudgeDrawingView: UIView {
             scaledPath.stroke()
         }
 
-        // Draw ISNet mask (white = subject = will be inpainted)
+        // Step 3: Apply ISNet mask (inverted: white→black, black→white)
+        // ISNet: white=subject(keep), black=background(remove)
+        // After inversion: white=background(remove), black=subject(keep)
         if let maskImg = isnetMaskOverlay {
-            let maskRect = CGRect(x: 0, y: 0, width: scaledSize.width, height: scaledSize.height)
-            // Draw ISNet mask as white fill on top of existing strokes
-            // White in mask = inpainted, Black in mask = preserved
-            if let maskCG = maskImg.cgImage {
-                context.saveGState()
-                context.clip(to: maskRect, mask: maskCG)
-                UIColor.white.setFill()
-                context.fill(maskRect)
-                context.restoreGState()
+            if let inverted = maskImg.invertedGrayscale() {
+                let maskRect = CGRect(x: 0, y: 0, width: scaledSize.width, height: scaledSize.height)
+                // Draw inverted mask as white fill (will be inpainted)
+                if let maskCG = inverted.cgImage {
+                    context.saveGState()
+                    context.clip(to: maskRect, mask: maskCG)
+                    UIColor.white.setFill()
+                    context.fill(maskRect)
+                    context.restoreGState()
+                }
             }
         }
 
@@ -190,7 +192,6 @@ class SmudgeDrawingView: UIView {
         return image
     }
 
-    
     public func clean() {
         path = UIBezierPath()
         paths = []
@@ -198,12 +199,48 @@ class SmudgeDrawingView: UIView {
         isnetMaskOverlay = nil
         self.setNeedsDisplay()
     }
+}
 
-    /// ISNet mask overlay image (semi-transparent preview, white=subject).
-    /// Set this to show ISNet auto-segmentation result before inpainting.
-    var isnetMaskOverlay: UIImage? {
-        didSet {
-            setNeedsDisplay()
+// MARK: - UIImage Extension for ISNet Mask Inversion
+
+extension UIImage {
+    /// Invert a grayscale mask: white→black, black→white.
+    /// Used to convert ISNet output (white=subject) to inpaint format (white=remove).
+    func invertedGrayscale() -> UIImage? {
+        guard let cgImage = self.cgImage else { return nil }
+        let width = cgImage.width
+        let height = cgImage.height
+        let colorSpace = CGColorSpaceCreateDeviceGray()
+        let bytesPerRow = width
+
+        var pixelData = [UInt8](repeating: 0, count: width * height)
+        guard let context = CGContext(
+            data: &pixelData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ) else { return nil }
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        // Invert: 255 - value
+        for i in 0..<pixelData.count {
+            pixelData[i] = 255 - pixelData[i]
         }
+
+        guard let outContext = CGContext(
+            data: &pixelData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ) else { return nil }
+
+        guard let outCGImage = outContext.makeImage() else { return nil }
+        return UIImage(cgImage: outCGImage)
     }
 }
