@@ -168,15 +168,57 @@ class InpaintingViewController: UIViewController {
                 return
             }
             
-            // Show ISNet mask as blue overlay on drawView
-            // The mask is white=subject (blue tinted preview), black=background (transparent)
-            self.drawView.isnetMaskOverlay = maskImage
+            // Transform mask to match display coordinates:
+            // ISNet mask is 1024x1024, but image was letterboxed to fit.
+            // We need to resize mask to display size and apply it as a clipped overlay.
+            let displayMask = self.resizeMaskForDisplay(
+                maskImage,
+                displaySize: self.imageView.bounds.size,
+                originalImageSize: inputImage.size
+            )
+            
+            self.drawView.isnetMaskOverlay = displayMask
             self.view.makeToast(
                 "Auto-detection done! Blue = detected subject. Refine with brush, then tap Inpaint.",
                 duration: 3.5,
                 position: .bottom
             )
         }
+    }
+    
+    /// Resize ISNet mask to match how the original image is displayed in imageView.
+    /// ISNet input: 1024x1024 (letterboxed original image).
+    /// Output: mask at display size, positioned to align with displayed image.
+    private func resizeMaskForDisplay(_ mask: UIImage, displaySize: CGSize, originalImageSize: CGSize) -> UIImage {
+        // Compute how the original image is displayed within displaySize at aspect-fit
+        let scale = min(displaySize.width / originalImageSize.width,
+                       displaySize.height / originalImageSize.height)
+        let scaledImageSize = CGSize(
+            width: originalImageSize.width * scale,
+            height: originalImageSize.height * scale
+        )
+        // Offset to center the image (letterbox/pillarbox)
+        let offsetX = (displaySize.width - scaledImageSize.width) / 2.0
+        let offsetY = (displaySize.height - scaledImageSize.height) / 2.0
+        
+        // Scale mask from 1024x1024 to the scaled image size
+        let scaledMask = mask.resized(to: scaledImageSize)
+        
+        // Now paste the scaled mask onto a displaySize canvas at the correct offset
+        UIGraphicsBeginImageContextWithOptions(displaySize, false, 1.0)
+        if let ctx = UIGraphicsGetCurrentContext() {
+            // Clear background (transparent)
+            ctx.clear(CGRect(origin: .zero, size: displaySize))
+            // Draw scaled mask at offset (centered)
+            if let sm = scaledMask?.cgImage {
+                let maskRect = CGRect(origin: CGPoint(x: offsetX, y: offsetY), size: scaledImageSize)
+                ctx.draw(sm, in: maskRect)
+            }
+        }
+        let result = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return result ?? mask
     }
     
     @objc func onSave() {
