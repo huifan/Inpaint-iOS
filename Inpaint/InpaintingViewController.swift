@@ -170,8 +170,8 @@ class InpaintingViewController: UIViewController {
             
             // Transform mask to match display coordinates:
             // ISNet mask is 1024x1024, but image was letterboxed to fit.
-            // We need to resize mask to display size and apply it as a clipped overlay.
-            let displayMask = self.resizeMaskForDisplay(
+            // Return inverted mask so draw() and export() can both use it directly.
+            let displayMask = self.resizeAndInvertMaskForDisplay(
                 maskImage,
                 displaySize: self.imageView.bounds.size,
                 originalImageSize: inputImage.size
@@ -186,41 +186,45 @@ class InpaintingViewController: UIViewController {
         }
     }
     
-    /// Resize ISNet mask to match how the original image is displayed in imageView.
-    /// ISNet input: 1024x1024 (letterboxed original image).
-    /// Output: mask at display size, positioned to align with displayed image.
-    private func resizeMaskForDisplay(_ mask: UIImage, displaySize: CGSize, originalImageSize: CGSize) -> UIImage {
-        // Compute how the original image is displayed within displaySize at aspect-fit
+    /// Resize and invert ISNet mask to match display coordinates.
+    /// ISNet output: white=subject(keep), black=background(remove).
+    /// After inversion here: white=background(remove, blue in preview), black=subject(keep).
+    /// This mask can be used directly for both:
+    ///   - draw(): clip with white=blue, black=transparent
+    ///   - exportAsGrayscaleImage(): white=inpaint, black=preserve
+    private func resizeAndInvertMaskForDisplay(_ mask: UIImage, displaySize: CGSize, originalImageSize: CGSize) -> UIImage {
+        // Compute aspect-fit scaling of original within displaySize
         let scale = min(displaySize.width / originalImageSize.width,
                        displaySize.height / originalImageSize.height)
         let scaledImageSize = CGSize(
             width: originalImageSize.width * scale,
             height: originalImageSize.height * scale
         )
-        // Offset to center the image (letterbox/pillarbox)
         let offsetX = (displaySize.width - scaledImageSize.width) / 2.0
         let offsetY = (displaySize.height - scaledImageSize.height) / 2.0
         
-        // Scale mask from 1024x1024 to the scaled image size using UIGraphicsImageRenderer
+        // Scale mask from 1024x1024 to scaled image size
         let scaledMask: UIImage = UIGraphicsImageRenderer(size: scaledImageSize).image { ctx in
             mask.draw(in: CGRect(origin: .zero, size: scaledImageSize))
         }
         
-        // Paste the scaled mask onto a displaySize canvas at the correct offset
+        // Paste scaled mask onto displaySize canvas at offset
         UIGraphicsBeginImageContextWithOptions(displaySize, false, 1.0)
         if let ctx = UIGraphicsGetCurrentContext() {
-            // Clear background (transparent)
             ctx.clear(CGRect(origin: .zero, size: displaySize))
-            // Draw scaled mask at offset (centered)
             if let sm = scaledMask.cgImage {
                 let maskRect = CGRect(origin: CGPoint(x: offsetX, y: offsetY), size: scaledImageSize)
                 ctx.draw(sm, in: maskRect)
             }
         }
-        let result = UIGraphicsGetImageFromCurrentImageContext()
+        let preInvert = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         
-        return result ?? mask
+        guard let preInvertImg = preInvert else { return mask }
+        
+        // Invert the mask: white↔black
+        guard let inverted = preInvertImg.invertedGrayscale() else { return preInvertImg }
+        return inverted
     }
     
     @objc func onSave() {

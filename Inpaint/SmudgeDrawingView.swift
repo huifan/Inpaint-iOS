@@ -128,16 +128,14 @@ class SmudgeDrawingView: UIView {
         path.stroke()
 
         // Draw ISNet mask preview:
-        // ISNet: white=subject, black=background
-        // Blue preview should appear on BACKGROUND (what will be removed)
-        // So we invert the mask: black in ISNet (background) → blue overlay
+        // isnetMaskOverlay is already inverted: white=background(remove), black=subject(keep)
+        // With clip(to: mask, cg):
+        //   - White in mask (background) → transparent → blue fill shows through
+        //   - Black in mask (subject) → opaque → blue fill blocked
+        // Result: blue appears on background (what will be removed)
         if let maskImg = isnetMaskOverlay, let cg = maskImg.cgImage {
             guard let context = UIGraphicsGetCurrentContext() else { return }
             context.saveGState()
-
-            // Invert mask: use CGBlendMode.destinationOut to reveal blue on black ISNet pixels
-            // Black in ISNet mask (background) → transparent → blue fill shows through
-            // White in ISNet mask (subject) → covers blue fill
             context.clip(to: rect, mask: cg)
             UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.35).setFill()
             context.fill(rect)
@@ -147,8 +145,8 @@ class SmudgeDrawingView: UIView {
 
     // 导出为灰度图像（用于 inpainting）
     // inpaint 期望：白色=消除区域，黑色=保留区域
-    // ISNet 输出：白色=主体（保留），黑色=背景（消除）
-    // 所以要取反 ISNet mask
+    // isnetMaskOverlay 已经是取反后的：白色=背景(消除)，黑色=主体(保留)
+    // 所以直接用，不需要再取反
     func exportAsGrayscaleImage() -> UIImage? {
         let screenScale = UIScreen.main.scale
         let scaledSize = CGSize(width: self.bounds.size.width * screenScale, height: self.bounds.size.height * screenScale)
@@ -170,20 +168,17 @@ class SmudgeDrawingView: UIView {
             scaledPath.stroke()
         }
 
-        // Step 3: Apply ISNet mask (inverted: white→black, black→white)
-        // ISNet: white=subject(keep), black=background(remove)
-        // After inversion: white=background(remove), black=subject(keep)
+        // Step 3: Apply ISNet mask (already inverted by resizeAndInvertMaskForDisplay)
+        // isnetMaskOverlay is: white=background(remove), black=subject(keep)
+        // Clip white areas → fill white (will be inpainted)
         if let maskImg = isnetMaskOverlay {
-            if let inverted = maskImg.invertedGrayscale() {
-                let maskRect = CGRect(x: 0, y: 0, width: scaledSize.width, height: scaledSize.height)
-                // Draw inverted mask as white fill (will be inpainted)
-                if let maskCG = inverted.cgImage {
-                    context.saveGState()
-                    context.clip(to: maskRect, mask: maskCG)
-                    UIColor.white.setFill()
-                    context.fill(maskRect)
-                    context.restoreGState()
-                }
+            let maskRect = CGRect(x: 0, y: 0, width: scaledSize.width, height: scaledSize.height)
+            if let maskCG = maskImg.cgImage {
+                context.saveGState()
+                context.clip(to: maskRect, mask: maskCG)
+                UIColor.white.setFill()
+                context.fill(maskRect)
+                context.restoreGState()
             }
         }
 
