@@ -120,9 +120,9 @@
 		11F2B99B2B583003001318F5 /* SettingViewControoler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingViewControoler.swift; sourceTree = "<group>"; };
 		11F2B99D2B583084001318F5 /* PurchaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseManager.swift; sourceTree = "<group>"; };
 		1A93C1B326361604F4C9E547 /* Pods-InpaintTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-InpaintTests.release.xcconfig"; path = "Target Support Files/Pods-InpaintTests/Pods-InpaintTests.release.xcconfig"; sourceTree = "<group>"; };
-		2B48506A4D935B93ACF1C8BB /* Inpaint-Bridging-Header.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "Inpaint-Bridging-Header.h"; path = "Inpaint/Inpaint-Bridging-Header.h"; sourceTree = "<group>"; };
-		34D74387F9C20126EA5EC375 /* ISNetWrapper.mm */ = {isa = PBXFileReference; includeInIndex = 1; name = ISNetWrapper.mm; path = Inpaint/ISNetWrapper.mm; sourceTree = "<group>"; };
-		4091856C180438FB44E8DEB6 /* ISNetWrapper.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = ISNetWrapper.h; path = Inpaint/ISNetWrapper.h; sourceTree = "<group>"; };
+		2B48506A4D935B93ACF1C8BB /* Inpaint-Bridging-Header.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "Inpaint-Bridging-Header.h"; path = "Inpaint-Bridging-Header.h"; sourceTree = "<group>"; };
+		34D74387F9C20126EA5EC375 /* ISNetWrapper.mm */ = {isa = PBXFileReference; includeInIndex = 1; name = ISNetWrapper.mm; path = ISNetWrapper.mm; sourceTree = "<group>"; };
+		4091856C180438FB44E8DEB6 /* ISNetWrapper.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = ISNetWrapper.h; path = ISNetWrapper.h; sourceTree = "<group>"; };
 		85CF5DBC619910A0108151C8 /* Pods-Inpaint-InpaintUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Inpaint-InpaintUITests.debug.xcconfig"; path = "Target Support Files/Pods-Inpaint-InpaintUITests/Pods-Inpaint-InpaintUITests.debug.xcconfig"; sourceTree = "<group>"; };
 		A086FDD6FF2D80CF0E84BDE2 /* Pods-Inpaint.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Inpaint.release.xcconfig"; path = "Target Support Files/Pods-Inpaint/Pods-Inpaint.release.xcconfig"; sourceTree = "<group>"; };
 		AC4CA385A6A39DF57A6AA9F8 /* Pods_InpaintTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_InpaintTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -138,10 +138,10 @@
 		BCB9A59F2B53EF1B009CFDB8 /* MagicWordDetactor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagicWordDetactor.swift; sourceTree = "<group>"; };
 		BCC06E5E2B4F8737002E28BD /* DepthImageSenceForVisionPro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthImageSenceForVisionPro.swift; sourceTree = "<group>"; };
 		BCC06E602B4F88F1002E28BD /* DepthImage3DModleGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthImage3DModleGenerator.swift; sourceTree = "<group>"; };
-		C52C5CCD5F0F4F4106758B78 /* ISNetService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ISNetService.swift; path = Inpaint/ISNetService.swift; sourceTree = "<group>"; };
+		C52C5CCD5F0F4F4106758B78 /* ISNetService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ISNetService.swift; path = ISNetService.swift; sourceTree = "<group>"; };
 		D9E7658C0F526B8A6D41DAC1 /* Pods-Inpaint-InpaintUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Inpaint-InpaintUITests.release.xcconfig"; path = "Target Support Files/Pods-Inpaint-InpaintUITests/Pods-Inpaint-InpaintUITests.release.xcconfig"; sourceTree = "<group>"; };
 		E084CFB713396F64E30392E4 /* Pods-Inpaint.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Inpaint.debug.xcconfig"; path = "Target Support Files/Pods-Inpaint/Pods-Inpaint.debug.xcconfig"; sourceTree = "<group>"; };
-		FCA01B71EC009EE84E1CEE61 /* isnet-general-use.onnx */ = {isa = PBXFileReference; includeInIndex = 1; name = "isnet-general-use.onnx"; path = "Inpaint/isnet-general-use.onnx"; sourceTree = "<group>"; };
+		FCA01B71EC009EE84E1CEE61 /* isnet-general-use.onnx */ = {isa = PBXFileReference; includeInIndex = 1; name = "isnet-general-use.onnx"; path = "isnet-general-use.onnx"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
