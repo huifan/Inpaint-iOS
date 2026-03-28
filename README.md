@@ -4,23 +4,81 @@ A free and open-source inpainting app powered by coreml on iPhone / iPad / MacBo
 
 基于 coreml 技术的免费开源 inpainting iOS App, OnDevice处理，无需服务器。
 
-最近更新:    
-1. 图片支持放大，做更精细的处理  
-2. 现在支持回退操作  
-3. 笔刷颜色更舒适  
-4. 笔刷大小可以根据需要调整啦  
+## 🔖 Branch: feature/rembg-integration
 
-修复:  
-1. 有时图像出现白线的问题  
-2. 有些手机上保存图片失败，展示为纯黑色的问题  
+This branch adds **ISNet auto-segmentation** via ONNX Runtime iOS.  
+New feature: tap **"auto"** → ISNet auto-detects subject → blue preview overlay → refine with brush → **"inpaint"** to remove.
 
-## Demo
+---
 
-Demo App 影像魔术师: [https://apps.apple.com/cn/app/%E5%BD%B1%E5%83%8F%E9%AD%94%E6%9C%AF%E5%B8%88/id6474593002](https://apps.apple.com/app/apple-store/id6474593002?pt=126805460&ct=github&mt=8)
+## Setup (Branch: feature/rembg-integration)
 
-https://github.com/wudijimao/Inpaint-iOS/assets/5219818/83b14e38-defd-4b3b-afaf-c5695b6b10b5
+### 1. Install Dependencies
 
+```bash
+cd Inpaint-iOS
+pod install
+```
 
+### 2. Download & Add ONNX Runtime Framework
+
+ONNX Runtime iOS requires a pre-built framework. Download and integrate:
+
+**Option A: Download from GitHub (Recommended)**
+1. Go to: https://github.com/microsoft/onnxruntime/releases/latest
+2. Look for `onnxruntime-ios-xcframework-*.zip`  
+   (If not visible, check releases v1.17–v1.24 for iOS builds)
+3. Download and extract → `ONNXRuntime.xcframework`
+4. Drag `ONNXRuntime.xcframework` into Xcode project
+   - ✅ Copy items if needed
+   - ✅ Target: Inpaint
+
+**Option B: Use CocoaPods (onnxruntime-c)**
+The `Podfile` includes `pod 'onnxruntime-c', '~> 1.24'`.  
+After `pod install`, the ONNX Runtime C library is in `Pods/onnxruntime-c/`.
+
+### 3. Download ISNet Model
+
+```bash
+# Copy from rembg cache (already downloaded)
+cp ~/.u2net/isnet-general-use.onnx Inpaint/isnet-general-use.onnx
+```
+
+Then drag `Inpaint/isnet-general-use.onnx` into Xcode:
+- ✅ Copy items if needed
+- ✅ Target: Inpaint
+
+### 4. Xcode Configuration
+
+**If using ONNXRuntime.xcframework:**
+- Link Binary With Libraries: Add `ONNXRuntime.xcframework`
+- Also add: `libc++abi.tbd`, `Accelerate.framework`, `CoreML.framework`
+
+**If using CocoaPods (onnxruntime-c):**
+- Add to Build Phases → Link Binary With Libraries:
+  - `libc++abi.tbd`
+  - `Accelerate.framework`
+  - `CoreML.framework`
+
+**Create Bridging Header** (`Inpaint-Bridging-Header.h`):
+```objc
+#import "ISNetWrapper.h"
+```
+
+In Build Settings:
+- `SWIFT_OBJC_BRIDGING_HEADER = Inpaint/Inpaint-Bridging-Header.h`
+- `CLANG_CXX_LANGUAGE_STANDARD = c++17`
+
+### 5. Build & Run
+
+```bash
+open Inpaint.xcworkspace
+```
+
+Select iPhone simulator or device → Run.  
+If build succeeds, the **"auto"** button in the toolbar is active.
+
+---
 
 ## Project Roadmap
 
@@ -29,7 +87,7 @@ https://github.com/wudijimao/Inpaint-iOS/assets/5219818/83b14e38-defd-4b3b-afaf-
 - [X] Image Modification History
 - [ ] Choice Model
 - [*] Impove Brush
-- [*] Integrate ISNet/ONNX Runtime for Quick Background Removal and Segmentation (branch: feature/rembg-integration)
+- [*] Integrate ISNet/ONNX Runtime for Quick Background Removal and Segmentation
 - [ ] Better UI
 - [ ] Optimization for Older Device Models
 
@@ -42,24 +100,13 @@ https://github.com/wudijimao/Inpaint-iOS/assets/5219818/83b14e38-defd-4b3b-afaf-
 - [ ] 更好的界面
 - [ ] 较老机型适配优化
 
-## Setup
-
-1. `pod install`
-2. Download ISNet model:
-   ```bash
-   # Download from rembg cache (~170MB)
-   cp ~/.u2net/isnet-general-use.onnx Inpaint/isnet-general-use.onnx
-   ```
-   Then drag `Inpaint/isnet-general-use.onnx` into Xcode project (勾选 "Copy items if needed" 和你的 App target).
-3. Open `Inpaint.xcworkspace` in Xcode and build.
-
 ## Development
 
 `Use Xcode 15`
 
 ## Contributors
 
-<a href="[https://github.com/wudijimao/Inpaint-iOS](https://github.com/wudijimao/Inpaint-iOS)/graphs/contributors">
+<a href="https://github.com/wudijimao/Inpaint-iOS/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=wudijimao/Inpaint-iOS" />
 </a>
 
@@ -77,7 +124,7 @@ For updates and discussions, follow me on Twitter:
 
 ## Acknowledgements
 
-Inspired by https://github.com/lxfater/inpaint-web 
+Inspired by https://github.com/lxfater/inpaint-web  
 Model: https://github.com/advimman/lama
 
 Thanks for the great work!

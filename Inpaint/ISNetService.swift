@@ -2,55 +2,90 @@
 //  ISNetService.swift
 //  Inpaint
 //
-//  ISNet segmentation service using ONNX Runtime Swift.
-//  Provides auto-segmentation for background removal and object detection.
+//  ISNet auto-segmentation service for Inpaint-iOS.
+//  Wraps ISNetWrapper (Objective-C++ / ONNX Runtime C API).
 //
-//  SETUP REQUIRED:
-//  1. Download ONNX Runtime iOS framework:
-//     https://github.com/microsoft/onnxruntime/releases
-//     → onnxruntime-ios-1.17.0.zip (or latest)
-//     → Extract ONNXRuntime.xcframework
+//  SETUP STEPS:
+//  ============
 //
-//  2. Add to Xcode:
-//     Drag ONNXRuntime.xcframework into project
-//     Link: libc++abi, Accelerate, CoreML, Vision frameworks
+//  Step 1: Download ONNX Runtime iOS Framework
+//  -------------------------------------------
+//  Option A (Recommended): GitHub Release
+//    1. Go to: https://github.com/microsoft/onnxruntime/releases
+//    2. Download: onnxruntime-ios-xcframework-*.zip (latest version)
+//       Example: onnxruntime-ios-xcframework-1.24.3.zip (~50MB)
+//    3. Extract → ONNXRuntime.xcframework
+//    4. Drag ONNXRuntime.xcframework into Xcode project
+//       • Copy items if needed ✓
+//       • Destination: Inpaint target ✓
+//    5. Build Phases → Link Binary With Libraries:
+//       Add: libc++abi.tbd, Accelerate.framework, CoreML.framework
 //
-//  3. Add model file:
-//     Download: cp ~/.u2net/isnet-general-use.onnx Inpaint/isnet-general-use.onnx
-//     Drag into Xcode (Copy items, Inpaint target)
+//  Option B: CocoaPods (onnxruntime-c)
+//    1. Podfile already has: pod 'onnxruntime-c', '~> 1.24'
+//    2. Run: pod install
+//    3. Build Phases → Link Binary With Libraries:
+//       Add: libc++abi.tbd, Accelerate.framework, CoreML.framework
 //
-//  4. Swift Package Manager (alternative):
-//     File → Add Packages → search "ONNX Runtime Swift"
+//  Step 2: Add Model File
+//  ----------------------
+//  1. Download model from rembg cache (already on this machine):
+//     cp ~/.u2net/isnet-general-use.onnx ~/Inpaint-iOS/Inpaint/
+//  2. Drag Inpaint/isnet-general-use.onnx into Xcode
+//     • Copy items if needed ✓
+//     • Destination: Inpaint target ✓
+//     • File inspector: Target Membership = Inpaint ✓
 //
-//  The model (170MB) is NOT in the repo. Download from rembg cache:
-//     cp ~/.u2net/isnet-general-use.onnx Inpaint/isnet-general-use.onnx
+//  Step 3: Create Bridging Header (if not exists)
+//  ------------------------------------------------
+//  In Xcode: File → New → File → Header (Objective-C)
+//  Named: Inpaint-Bridging-Header.h
+//  Add to it:
+//    #import "ISNetWrapper.h"
+//
+//  Step 4: Configure Xcode Project
+//  --------------------------------
+//  1. Build Settings:
+//     - SWIFT_OBJC_BRIDGING_HEADER = Inpaint/Inpaint-Bridging-Header.h
+//     - CLANG_CXX_LANGUAGE_STANDARD = c++17
+//     - OTHER_LDFLAGS = -force_load (for ONNX Runtime dlsym approach)
+//  2. Build Phases:
+//     - Compile Sources: Add ISNetWrapper.mm
+//     - Link Binary: Add ONNXRuntime.xcframework (or libonnxruntime from pod)
+//
+//  Step 5: Build & Run
+//  -------------------
+//  If build succeeds → auto-segmentation is ready!
+//  If build fails → check console for error details
 //
 
 import UIKit
 
-/// ISNet prediction result containing mask and status.
+/// Result wrapper for Swift callers.
 class ISNetPredictionResult {
     var maskImage: UIImage?
     var success: Bool = false
     var error: Error?
 }
 
-/// ISNet segmentation service.
-/// Input: UIImage → Output: grayscale mask (white=subject, black=background).
+/// Swift service wrapping the Objective-C++ ISNetWrapper.
+/// This is the interface used by InpaintingViewController.
 class ISNetService {
     
     static let shared = ISNetService()
     
-    // TODO: Replace with actual ONNX Runtime session
-    // Example (when framework is integrated):
-    // private var session: ORTSession?
-    private let modelSize: Int = 1024
+    private let wrapper: ISNetWrapper
+    private var isLoaded: Bool = false
     private let workQueue = DispatchQueue(label: "ISNetService", qos: .userInitiated)
-    private var isModelLoaded: Bool = false
     
-    private init() {}
+    /// Model input size (ISNet: 1024x1024)
+    static let modelInputSize: Int = 1024
     
-    /// Preload model in background. Call once at app startup.
+    private init() {
+        wrapper = ISNetWrapper.shared()
+    }
+    
+    /// Preload model. Call at app startup (e.g., in AppDelegate).
     func preload() {
         workQueue.async { [weak self] in
             self?.loadModel()
@@ -58,73 +93,74 @@ class ISNetService {
     }
     
     private func loadModel() {
-        // TODO: Initialize ONNX Runtime session
-        //
-        // guard let modelPath = Bundle.main.path(forResource: "isnet-general-use", ofType: "onnx") else {
-        //     print("[ISNet] Model not found: isnet-general-use.onnx")
-        //     return
-        // }
-        // let env = ORTEnv()
-        // session = try ORTSession(env: env, modelPath: modelPath)
-        // isModelLoaded = true
-        // print("[ISNet] Model loaded successfully")
-        
-        print("[ISNet] ONNX Runtime integration pending. See ISNetService.swift for setup instructions.")
+        // Try to load model, silently fail if not found (will retry at predict time)
+        var error: NSError?
+        let success = wrapper.loadModel("isnet-general-use", error: &error)
+        if success {
+            isLoaded = true
+            print("[ISNet] Model loaded successfully")
+        } else {
+            print("[ISNet] Model load failed: \(error?.localizedDescription ?? "unknown")")
+        }
     }
     
-    /// Run ISNet segmentation synchronously.
-    /// Returns: grayscale UIImage mask (white=subject, black=background)
+    /// Synchronous mask prediction.
+    /// Returns: grayscale mask (white=subject, black=background), or nil on failure.
     func predict(inputImage: UIImage) -> UIImage? {
-        guard isModelLoaded else {
-            print("[ISNet] Model not loaded. Call preload() first.")
-            return nil
+        if !isLoaded {
+            var error: NSError?
+            let success = wrapper.loadModel("isnet-general-use", error: &error)
+            if !success {
+                print("[ISNet] Model not available: \(error?.localizedDescription ?? "")")
+                return nil
+            }
+            isLoaded = true
         }
         
-        // TODO: Run ONNX Runtime inference
-        // Steps:
-        // 1. Resize inputImage to modelSize x modelSize (1024x1024)
-        // 2. Extract RGB bytes → convert to Float32 [0,1] CHW tensor
-        // 3. Run session.run(inputNames: ["input_image"], ...)
-        // 4. Get output Float32 [1,1,H,W] mask → normalize to [0,255] → UIImage
-        
-        print("[ISNet] predict() called but ONNX Runtime not yet integrated")
-        return nil
+        var error: NSError?
+        let mask = wrapper.predict(inputImage, error: &error)
+        if mask == nil {
+            print("[ISNet] Prediction failed: \(error?.localizedDescription ?? "unknown")")
+        }
+        return mask
     }
     
-    /// Run ISNet segmentation asynchronously.
+    /// Async mask prediction (background thread, result on main queue).
     func predictAsync(inputImage: UIImage, completion: @escaping (ISNetPredictionResult) -> Void) {
         workQueue.async { [weak self] in
             guard let self = self else { return }
             
-            // Load model if not yet loaded
-            if !self.isModelLoaded {
-                self.loadModel()
-                // Small delay for model to potentially load
-                Thread.sleep(forTimeInterval: 0.3)
-            }
-            
             var result = ISNetPredictionResult()
             
-            if !self.isModelLoaded {
-                result.error = NSError(
-                    domain: "ISNetService",
-                    code: 1,
-                    userInfo: [NSLocalizedDescriptionKey: "Model not loaded. Please integrate ONNX Runtime first."]
-                )
-            } else if let mask = self.predict(inputImage: inputImage) {
+            if !self.isLoaded {
+                var error: NSError?
+                let ok = self.wrapper.loadModel("isnet-general-use", error: &error)
+                if !ok {
+                    result.error = error ?? NSError(
+                        domain: "ISNetService",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "Failed to load model"]
+                    )
+                    DispatchQueue.main.async { completion(result) }
+                    return
+                }
+                self.isLoaded = true
+            }
+            
+            var error: NSError?
+            let mask = self.wrapper.predict(inputImage, error: &error)
+            if let mask = mask {
                 result.maskImage = mask
                 result.success = true
             } else {
-                result.error = NSError(
+                result.error = error ?? NSError(
                     domain: "ISNetService",
                     code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "Inference failed"]
+                    userInfo: [NSLocalizedDescriptionKey: "Prediction returned nil"]
                 )
             }
             
-            DispatchQueue.main.async {
-                completion(result)
-            }
+            DispatchQueue.main.async { completion(result) }
         }
     }
 }
