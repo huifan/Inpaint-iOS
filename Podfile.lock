@@ -1,20 +1,24 @@
 PODS:
+  - onnxruntime-c (1.24.3)
   - SnapKit (5.6.0)
   - Toast-Swift (5.0.1)
 
 DEPENDENCIES:
+  - onnxruntime-c (~> 1.24)
   - SnapKit
   - Toast-Swift
 
 SPEC REPOS:
   trunk:
+    - onnxruntime-c
     - SnapKit
     - Toast-Swift
 
 SPEC CHECKSUMS:
+  onnxruntime-c: 4a1a1a81da2087869dc9b6357f182952db2df29c
   SnapKit: e01d52ebb8ddbc333eefe2132acf85c8227d9c25
   Toast-Swift: 9b6a70f28b3bf0b96c40d46c0c4b9d6639846711
 
-PODFILE CHECKSUM: b030f3dbaa9d91c19fd2db60cec1f6f2f425d61f
+PODFILE CHECKSUM: db644f97532a93a01acabb4b21c923ba0c741b69
 
 COCOAPODS: 1.16.2
