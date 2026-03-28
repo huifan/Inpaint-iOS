@@ -7,7 +7,9 @@ target 'Inpaint' do
 
   pod 'SnapKit'
   pod 'Toast-Swift'
-  pod 'ONNXRuntime', '~> 1.17'   # ONNX Runtime for iOS
+  # Note: ONNX Runtime iOS uses pre-built framework from GitHub releases.
+  # Download from: https://github.com/microsoft/onnxruntime/releases
+  # Recommended: onnxruntime-ios-1.17.0.zip (static framework with CoreML EP)
 
   # Pods for Inpaint
 

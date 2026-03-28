@@ -136,31 +136,53 @@ class SmudgeDrawingView: UIView {
             path.stroke()
         }
         path.stroke()
+
+        // Draw ISNet mask overlay (tinted blue, semi-transparent)
+        if let maskImg = isnetMaskOverlay, let cg = maskImg.cgImage {
+            guard let context = UIGraphicsGetCurrentContext() else { return }
+            context.saveGState()
+            context.clip(to: rect, mask: cg)
+            UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.35).setFill()
+            context.fill(rect)
+            context.restoreGState()
+        }
     }
 
     // 导出为灰度图像
     func exportAsGrayscaleImage() -> UIImage? {
         let screenScale = UIScreen.main.scale
 
-        // 放大后的尺寸
         let scaledSize = CGSize(width: self.bounds.size.width * screenScale, height: self.bounds.size.height * screenScale)
 
         UIGraphicsBeginImageContextWithOptions(scaledSize, false, 1.0)
         guard let context = UIGraphicsGetCurrentContext() else { return nil }
 
-
-        // 绘制背景
+        // Draw background
         exportBackgroundColor.setFill()
         context.fill(CGRect(x: 0, y: 0, width: scaledSize.width, height: scaledSize.height))
 
+        // Draw user strokes
         paths.forEach { path in
-            // 调整路径尺寸
             let scaledPath = UIBezierPath(cgPath: path.cgPath)
             scaledPath.apply(CGAffineTransform(scaleX: screenScale, y: screenScale))
             exportLineColor.setStroke()
-            scaledPath.lineWidth = brushSize * screenScale // 调整线宽
+            scaledPath.lineWidth = brushSize * screenScale
             scaledPath.lineCapStyle = .round
             scaledPath.stroke()
+        }
+
+        // Draw ISNet mask (white = subject = will be inpainted)
+        if let maskImg = isnetMaskOverlay {
+            let maskRect = CGRect(x: 0, y: 0, width: scaledSize.width, height: scaledSize.height)
+            // Draw ISNet mask as white fill on top of existing strokes
+            // White in mask = inpainted, Black in mask = preserved
+            if let maskCG = maskImg.cgImage {
+                context.saveGState()
+                context.clip(to: maskRect, mask: maskCG)
+                UIColor.white.setFill()
+                context.fill(maskRect)
+                context.restoreGState()
+            }
         }
 
         let image = UIGraphicsGetImageFromCurrentImageContext()
@@ -173,6 +195,15 @@ class SmudgeDrawingView: UIView {
         path = UIBezierPath()
         paths = []
         touchPoints = []
+        isnetMaskOverlay = nil
         self.setNeedsDisplay()
+    }
+
+    /// ISNet mask overlay image (semi-transparent preview, white=subject).
+    /// Set this to show ISNet auto-segmentation result before inpainting.
+    var isnetMaskOverlay: UIImage? {
+        didSet {
+            setNeedsDisplay()
+        }
     }
 }

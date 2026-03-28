@@ -12,8 +12,6 @@ import Toast_Swift
 class InpaintingViewController: UIViewController {
     
     var inpenting = LaMaImageInpenting.init()
-    
-    // 新增：加载指示器
     var loadngView = UIActivityIndicatorView(style: .large)
 
     lazy var scrollView: UIScrollView = {
@@ -69,12 +67,13 @@ class InpaintingViewController: UIViewController {
         }
         
         unDoButton.isEnabled = false
-        // 创建消除和保存按钮
+        
+        // Navigation bar: [Save] [Inpaint] [Auto(ISNet)] [Undo]
         let clearButton = UIBarButtonItem(title: *"inpaint", style: .plain, target: self, action: #selector(onInpaint))
         let saveButton = UIBarButtonItem(title: *"save_to_photo_lib", style: .plain, target: self, action: #selector(onSave))
+        let autoButton = UIBarButtonItem(title: "auto", style: .plain, target: self, action: #selector(onAutoRemove))
         
-        // 将按钮添加到导航栏
-        navigationItem.rightBarButtonItems = [saveButton, clearButton, unDoButton]
+        navigationItem.rightBarButtonItems = [saveButton, clearButton, autoButton, unDoButton]
         
         loadngView.hidesWhenStopped = true
         view.addSubview(loadngView)
@@ -82,7 +81,7 @@ class InpaintingViewController: UIViewController {
             make.edges.equalToSuperview()
         }
         
-        // 创建滑动条
+        // Brush size slider
         let slider = UISlider()
         slider.minimumValue = 10
         slider.maximumValue = 50
@@ -91,29 +90,26 @@ class InpaintingViewController: UIViewController {
         slider.addTarget(self, action: #selector(sliderValueChanged(_:)), for: .valueChanged)
         drawView.brushSize = CGFloat(lastSliderValue)
         
-        // 将滑动条添加到导航栏
         let sliderBarItem = UIBarButtonItem(customView: slider)
         self.navigationItem.titleView = sliderBarItem.customView
+        slider.widthAnchor.constraint(equalToConstant: self.view.frame.width - 320).isActive = true
         
-        // 配置滑动条的布局以避开左右按钮
-        slider.widthAnchor.constraint(equalToConstant: self.view.frame.width - 320).isActive = true // 根据需要调整120的值
+        // Preload ISNet model
+        ISNetService.shared.preload()
     }
     
     @objc func sliderValueChanged(_ sender: UISlider) {
         let roundedValue = round(sender.value)
-        print("Slider value is now \(roundedValue)")
-        
-        // 保存四舍五入后的整数值到UserDefaults
         UserDefaults.standard.set(roundedValue, forKey: "lastSliderValue")
         drawView.brushSize = CGFloat(roundedValue)
     }
-    
     
     var undoList = [UIImage]() {
         didSet {
             unDoButton.isEnabled = undoList.count > 0
         }
     }
+    
     @objc func onUndo() {
         guard undoList.count > 0 else { return }
         let img = undoList.removeLast()
@@ -122,10 +118,9 @@ class InpaintingViewController: UIViewController {
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // 如果收到内存警告则只保留最新的两次操作和原始图片
         if undoList.count > 3 {
-            let lastTwoOperations = undoList.suffix(2)
-            undoList = [undoList[0]] + lastTwoOperations
+            let lastTwo = undoList.suffix(2)
+            undoList = [undoList[0]] + lastTwo
         }
     }
     
@@ -148,32 +143,58 @@ class InpaintingViewController: UIViewController {
             self.drawView.clean()
             self.loadngView.stopAnimating()
         }
+    }
+    
+    // MARK: - ISNet Auto Segmentation
+    
+    /// "Auto" button: run ISNet on full image → show mask as blue overlay preview.
+    /// User can refine with brush, then tap "inpaint".
+    @objc func onAutoRemove() {
+        guard let inputImage = imageView.image else {
+            self.view.makeToast("No image loaded", duration: 2.0, position: .bottom)
+            return
+        }
         
+        loadngView.startAnimating()
+        self.view.makeToast("Running auto-segmentation...", duration: 1.0, position: .center)
+        
+        ISNetService.shared.predictAsync(inputImage: inputImage) { [weak self] result in
+            guard let self = self else { return }
+            self.loadngView.stopAnimating()
+            
+            guard result.success, let maskImage = result.maskImage else {
+                let msg = result.error?.localizedDescription ?? "ISNet failed"
+                self.view.makeToast(msg, duration: 3.0, position: .bottom)
+                return
+            }
+            
+            // Show ISNet mask as blue overlay on drawView
+            // The mask is white=subject (blue tinted preview), black=background (transparent)
+            self.drawView.isnetMaskOverlay = maskImage
+            self.view.makeToast(
+                "Auto-detection done! Blue = detected subject. Refine with brush, then tap Inpaint.",
+                duration: 3.5,
+                position: .bottom
+            )
+        }
     }
     
     @objc func onSave() {
-        // 检查 imageView 是否有图像
         guard let imageToSave = imageView.image else {
-            print("没有可保存的图像")
+            print("No image to save")
             return
         }
-        // 保存图像到相册
         UIImageWriteToSavedPhotosAlbum(imageToSave, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
     }
     
-    // UIImageWriteToSavedPhotosAlbum 的回调方法
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         if let error = error {
-            // 保存失败，显示Toast消息
-            self.view.makeToast("\(*"toast_save_error")) \(error.localizedDescription)", duration: 3.0, position: .bottom)
+            self.view.makeToast("Save failed: \(error.localizedDescription)", duration: 3.0, position: .bottom)
         } else {
-            // 保存成功
-            self.view.makeToast(*"toast_save_success", duration: 3.0, position: .bottom)
+            self.view.makeToast("Saved!", duration: 3.0, position: .bottom)
         }
     }
-    
 }
-
 
 extension InpaintingViewController: UIScrollViewDelegate {
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -181,6 +202,6 @@ extension InpaintingViewController: UIScrollViewDelegate {
     }
     
     func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
-        //TODO: 放大后对笔刷进行处理，这要求DrawView支持同时绘制不同大小的笔刷，需要先支持笔刷切换再做
+        // TODO: handle brush size after zoom
     }
 }
