@@ -205,7 +205,7 @@ class InpaintingViewController: UIViewController {
         
         // Scale mask from 1024x1024 to scaled image size
         let scaledMask: UIImage = UIGraphicsImageRenderer(size: scaledImageSize).image { ctx in
-            mask.draw(in: CGRect(origin: .zero, size: scaledImageSize))
+            mask.draw(in: CGRect(origin: .zero, size: scaledImageSize)
         }
         
         // Paste scaled mask onto displaySize canvas at offset
