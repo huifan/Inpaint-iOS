@@ -29,7 +29,7 @@ https://github.com/wudijimao/Inpaint-iOS/assets/5219818/83b14e38-defd-4b3b-afaf-
 - [X] Image Modification History
 - [ ] Choice Model
 - [*] Impove Brush
-- [ ] Integrate Segment Anything for Quick Selection and Removal in Images
+- [*] Integrate ISNet/ONNX Runtime for Quick Background Removal and Segmentation (branch: feature/rembg-integration)
 - [ ] Better UI
 - [ ] Optimization for Older Device Models
 
@@ -44,7 +44,14 @@ https://github.com/wudijimao/Inpaint-iOS/assets/5219818/83b14e38-defd-4b3b-afaf-
 
 ## Setup
 
-`pod install`
+1. `pod install`
+2. Download ISNet model:
+   ```bash
+   # Download from rembg cache (~170MB)
+   cp ~/.u2net/isnet-general-use.onnx Inpaint/isnet-general-use.onnx
+   ```
+   Then drag `Inpaint/isnet-general-use.onnx` into Xcode project (勾选 "Copy items if needed" 和你的 App target).
+3. Open `Inpaint.xcworkspace` in Xcode and build.
 
 ## Development
 
