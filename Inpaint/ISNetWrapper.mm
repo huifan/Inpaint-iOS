@@ -3,8 +3,7 @@
 //  Inpaint
 //
 //  ISNet inference using ONNX Runtime C API on iOS.
-//  Uses CocoaPods onnxruntime-c (1.24.3) which provides:
-//    Pods/onnxruntime-c/Headers/onnxruntime_c_api.h
+//  Uses CocoaPods onnxruntime-c (1.24.3).
 //
 
 #import "ISNetWrapper.h"
@@ -38,10 +37,8 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _inputSize = 1024; // ISNet: 1024x1024
+        _inputSize = 1024;
         _workQueue = dispatch_queue_create("com.inpaint.isnet", DISPATCH_QUEUE_SERIAL);
-
-        // Get ONNX Runtime API
         const OrtApiBase *ortBase = OrtGetApiBase();
         _ort = ortBase->GetApi(ORT_API_VERSION);
     }
@@ -49,7 +46,6 @@
 }
 
 - (BOOL)loadModel:(NSString *)modelName error:(NSError **)error {
-    // Find model file in bundle
     NSString *modelPath = [[NSBundle mainBundle] pathForResource:modelName ofType:@"onnx"];
     if (!modelPath) {
         if (error) {
@@ -62,51 +58,56 @@
     }
 
     // Create environment
-    OrtStatus *status = self.ort->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "ISNet", &_env);
+    OrtEnv *env = NULL;
+    OrtStatus *status = _ort->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "ISNet", &env);
     if (status != NULL) {
-        if (error) *error = [self errorFromStatus:status code:102 msg:@"Failed to create ONNX Runtime environment"];
+        if (error) *error = [self errorFromStatus:status code:102 msg:@"Failed to create environment"];
         return NO;
     }
+    _env = env;
 
     // Create session options
-    status = self.ort->CreateSessionOptions(&_sessionOptions);
+    OrtSessionOptions *opts = NULL;
+    status = _ort->CreateSessionOptions(&opts);
     if (status != NULL) {
         if (error) *error = [self errorFromStatus:status code:103 msg:@"Failed to create session options"];
         return NO;
     }
+    _sessionOptions = opts;
 
-    // Enable CoreML execution provider (Apple Neural Engine on iOS)
-    // Falls back to CPU automatically if CoreML unavailable
+    // Enable CoreML EP (Apple Neural Engine on iOS)
     OrtSessionOptionsAppendExecutionProvider_CoreML(_sessionOptions, 0);
 
-    // Create inference session
-    status = self.ort->CreateSession(_env, [modelPath UTF8String], _sessionOptions, &_session);
+    // Create session
+    OrtSession *sess = NULL;
+    status = _ort->CreateSession(_env, [modelPath UTF8String], _sessionOptions, &sess);
     if (status != NULL) {
-        if (error) *error = [self errorFromStatus:status code:104 msg:@"Failed to create inference session"];
+        if (error) *error = [self errorFromStatus:status code:104 msg:@"Failed to create session"];
         return NO;
     }
+    _session = sess;
 
-    // Get input/output tensor names using default allocator
+    // Get input/output names
     OrtAllocator *allocator = NULL;
-    self.ort->GetAllocatorWithDefaultOptions(&allocator);
+    _ort->GetAllocatorWithDefaultOptions(&allocator);
 
     char *inputNameCStr = NULL;
-    OrtStatus *s = self.ort->GetInputName(_session, 0, allocator, &inputNameCStr);
+    OrtStatus *s = _ort->SessionGetInputName(_session, 0, allocator, &inputNameCStr);
     if (s == NULL && inputNameCStr != NULL) {
         self.inputName = [NSString stringWithUTF8String:inputNameCStr];
     } else {
-        self.inputName = @"input_image"; // fallback
+        self.inputName = @"input_image";
     }
-    allocator->Free(allocator, inputNameCStr);
+    if (inputNameCStr) allocator->Free(allocator, inputNameCStr);
 
     char *outputNameCStr = NULL;
-    s = self.ort->GetOutputName(_session, 0, allocator, &outputNameCStr);
+    s = _ort->SessionGetOutputName(_session, 0, allocator, &outputNameCStr);
     if (s == NULL && outputNameCStr != NULL) {
         self.outputName = [NSString stringWithUTF8String:outputNameCStr];
     } else {
-        self.outputName = @"output_image"; // fallback
+        self.outputName = @"output_image";
     }
-    allocator->Free(allocator, outputNameCStr);
+    if (outputNameCStr) allocator->Free(allocator, outputNameCStr);
 
     NSLog(@"[ISNet] Loaded! Input: %@, Output: %@", self.inputName, self.outputName);
     return YES;
@@ -117,21 +118,21 @@
         if (error) {
             *error = [NSError errorWithDomain:@"ISNetWrapper"
                                          code:103
-                                     userInfo:@{NSLocalizedDescriptionKey: @"Model not loaded. Call loadModel:error: first."}];
+                                     userInfo:@{NSLocalizedDescriptionKey: @"Model not loaded."}];
         }
         return nil;
     }
 
     NSInteger size = self.inputSize; // 1024
 
-    // Step 1: Resize input image to model input size (1024x1024)
+    // Step 1: Resize to 1024x1024
     CGSize targetSize = CGSizeMake(size, size);
     UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:targetSize];
     UIImage *resized = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
         [image drawInRect:CGRectMake(0, 0, size, size)];
     }];
 
-    // Step 2: Extract RGB pixel bytes from UIImage
+    // Step 2: Get RGB pixel bytes from UIImage
     CGImageRef cg = resized.CGImage;
     size_t width = (size_t)size, height = (size_t)size;
     size_t bytesPerRow = width * 4;
@@ -145,8 +146,7 @@
     CGContextRelease(ctx);
     CGColorSpaceRelease(colorSpace);
 
-    // Step 3: Convert to CHW Float32 tensor [0, 1]
-    // ISNet expects (1, 3, 1024, 1024) in CHW format: all R, then all G, then all B
+    // Step 3: Convert to CHW Float32 [0,1] tensor: (1, 3, 1024, 1024)
     size_t floatCount = 3 * size * size;
     float *inputTensor = (float *)malloc(floatCount * sizeof(float));
 
@@ -156,7 +156,6 @@
             float r = rawPixels[pixelIdx] / 255.0f;
             float g = rawPixels[pixelIdx + 1] / 255.0f;
             float b = rawPixels[pixelIdx + 2] / 255.0f;
-
             size_t rIdx = y * size + x;
             size_t gIdx = size * size + y * size + x;
             size_t bIdx = 2 * size * size + y * size + x;
@@ -167,50 +166,66 @@
     }
     free(rawPixels);
 
-    // Step 4: Create ONNX Runtime tensor
+    // Step 4: Create memory info and input OrtValue tensor
     OrtMemoryInfo *memInfo = NULL;
-    self.ort->CreateMemoryInfo("Cpu", OrtArenaAllocator, 0, OrtMemTypeDefault, &memInfo);
+    _ort->CreateMemoryInfo("Cpu", OrtArenaAllocator, 0, OrtMemTypeDefault, &memInfo);
 
     int64_t inputShape[] = {1, 3, size, size};
     OrtValue *inputValue = NULL;
-    self.ort->CreateTensorWithData(memInfo, inputTensor, floatCount * sizeof(float),
-                                   inputShape, 4, ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, &inputValue);
-    self.ort->ReleaseMemoryInfo(memInfo);
-    free(inputTensor);
+    // CreateTensorWithDataAsOrtValue takes ownership of inputTensor - ORT frees it
+    OrtStatus *tensorStatus = _ort->CreateTensorWithDataAsOrtValue(
+        memInfo,
+        (void *)inputTensor,
+        floatCount * sizeof(float),
+        inputShape,
+        4,
+        ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+        &inputValue
+    );
+    if (tensorStatus != NULL) {
+        free(inputTensor); // fallback: free ourselves
+        if (error) *error = [self errorFromStatus:tensorStatus code:105 msg:@"Failed to create input tensor"];
+        return nil;
+    }
+    // Note: inputTensor is now owned by inputValue - do NOT free it
 
     // Step 5: Run inference
     const char *inputNames[] = {[self.inputName UTF8String]};
     const char *outputNames[] = {[self.outputName UTF8String]};
-
     OrtValue *outputValue = NULL;
-    OrtStatus *runStatus = self.ort->Run(_session, NULL,
-                                        inputNames, (const OrtValue**)&inputValue, 1,
-                                        outputNames, 1, &outputValue);
-    self.ort->ReleaseValue(inputValue);
+    OrtStatus *runStatus = _ort->Run(_session, NULL,
+                                     inputNames, (const OrtValue**)&inputValue, 1,
+                                     outputNames, 1, &outputValue);
+    // inputValue is no longer needed after Run
+    inputValue = NULL;
 
     if (runStatus != NULL || !outputValue) {
-        if (error) *error = [self errorFromStatus:runStatus code:104 msg:@"ONNX Runtime inference failed"];
+        if (error) *error = [self errorFromStatus:runStatus code:106 msg:@"ONNX inference failed"];
         return nil;
     }
 
-    // Step 6: Get output tensor dimensions
-    int64_t outShape[4];
-    size_t numDims = 4;
-    self.ort->GetDimensions(outputValue, outShape, numDims);
+    // Step 6: Get output shape
+    OrtTensorTypeAndShapeInfo *shapeInfo = NULL;
+    _ort->GetTensorTypeAndShape(outputValue, &shapeInfo);
+    size_t dimCount = 0;
+    _ort->GetDimensionsCount(shapeInfo, &dimCount);
+    int64_t outShape[4] = {0};
+    _ort->GetDimensions(shapeInfo, outShape, dimCount);
     int64_t outH = outShape[2];
     int64_t outW = outShape[3];
+    // Note: shapeInfo is owned by outputValue in this ONNX Runtime version, no manual release needed
 
-    // Step 7: Read output tensor data (Float32, range [0, 1])
-    float *outputData = NULL;
-    self.ort->GetTensorMutableData(outputValue, (void**)&outputData);
+    // Step 7: Get output tensor data (Float32, range [0, 1])
+    void *outputData = NULL;
+    _ort->GetTensorMutableData(outputValue, &outputData);
 
-    // Step 8: Convert Float32 mask [0,1] -> grayscale UIImage
+    // Step 8: Convert Float32 [0,1] -> grayscale UIImage
     size_t maskByteCount = outH * outW;
     uint8_t *maskBytes = (uint8_t *)malloc(maskByteCount);
-
+    float *floatData = (float *)outputData;
     for (NSInteger i = 0; i < maskByteCount; i++) {
-        float v = outputData[i];
-        v = fminf(1.0f, fmaxf(0.0f, v)); // clamp to [0,1]
+        float v = floatData[i];
+        v = fminf(1.0f, fmaxf(0.0f, v));
         maskBytes[i] = (uint8_t)(v * 255.0f);
     }
 
@@ -222,7 +237,6 @@
     CGDataProviderRelease(provider);
     CGColorSpaceRelease(graySpace);
     free(maskBytes);
-    self.ort->ReleaseValue(outputValue);
 
     UIImage *maskImage = [UIImage imageWithCGImage:maskCG];
     CGImageRelease(maskCG);
@@ -248,15 +262,9 @@
 
 - (NSError *)errorFromStatus:(OrtStatus *)status code:(NSInteger)code msg:(NSString *)msg {
     if (status == NULL) return nil;
-    const char *statusMsg = self.ort->GetErrorMessage(status);
+    const char *statusMsg = _ort->GetErrorMessage(status);
     NSString *msgStr = [NSString stringWithFormat:@"%@: %s", msg, statusMsg ? statusMsg : "unknown"];
     return [NSError errorWithDomain:@"ISNetWrapper" code:code userInfo:@{NSLocalizedDescriptionKey: msgStr}];
-}
-
-- (void)dealloc {
-    if (_session) self.ort->ReleaseSession(_session);
-    if (_sessionOptions) self.ort->ReleaseSessionOptions(_sessionOptions);
-    if (_env) self.ort->ReleaseEnv(_env);
 }
 
 @end
