@@ -201,16 +201,18 @@ class InpaintingViewController: UIViewController {
         let offsetX = (displaySize.width - scaledImageSize.width) / 2.0
         let offsetY = (displaySize.height - scaledImageSize.height) / 2.0
         
-        // Scale mask from 1024x1024 to the scaled image size
-        let scaledMask = mask.resized(to: scaledImageSize)
+        // Scale mask from 1024x1024 to the scaled image size using UIGraphicsImageRenderer
+        let scaledMask: UIImage = UIGraphicsImageRenderer(size: scaledImageSize).image { ctx in
+            mask.draw(in: CGRect(origin: .zero, size: scaledImageSize))
+        }
         
-        // Now paste the scaled mask onto a displaySize canvas at the correct offset
+        // Paste the scaled mask onto a displaySize canvas at the correct offset
         UIGraphicsBeginImageContextWithOptions(displaySize, false, 1.0)
         if let ctx = UIGraphicsGetCurrentContext() {
             // Clear background (transparent)
             ctx.clear(CGRect(origin: .zero, size: displaySize))
             // Draw scaled mask at offset (centered)
-            if let sm = scaledMask?.cgImage {
+            if let sm = scaledMask.cgImage {
                 let maskRect = CGRect(origin: CGPoint(x: offsetX, y: offsetY), size: scaledImageSize)
                 ctx.draw(sm, in: maskRect)
             }
