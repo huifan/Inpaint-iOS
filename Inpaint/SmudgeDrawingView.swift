@@ -18,8 +18,9 @@ class SmudgeDrawingView: UIView {
     var exportBackgroundColor: UIColor = .black // 未涂抹部分导出时的颜色
     var brushSize: CGFloat = 20.0 // 默认笔刷大小
 
-    /// ISNet mask: grayscale UIImage (white=subject, black=background).
-    /// Set by ISNetService after auto-segmentation.
+    /// ISNet mask: grayscale UIImage.
+    /// After resizeAndInvertMaskForDisplay: white=background(remove), black=subject(keep).
+    /// Display: clip(to: mask) + blue fill → blue only on background areas.
     var isnetMaskOverlay: UIImage? {
         didSet {
             setNeedsDisplay()
@@ -52,7 +53,10 @@ class SmudgeDrawingView: UIView {
                 var rect = path.bounds
                 let expandBy = path.lineWidth / 2
                 rect = rect.insetBy(dx: -expandBy, dy: -expandBy)
-                rect = CGRect(x: rect.origin.x * UIScreen.main.scale, y: rect.origin.y * UIScreen.main.scale, width: rect.size.width * UIScreen.main.scale, height: rect.size.height * UIScreen.main.scale)
+                rect = CGRect(x: rect.origin.x * UIScreen.main.scale,
+                               y: rect.origin.y * UIScreen.main.scale,
+                               width: rect.size.width * UIScreen.main.scale,
+                               height: rect.size.height * UIScreen.main.scale)
                 rects.append(rect)
             }
             guard rects.count > 0 else {
@@ -120,19 +124,18 @@ class SmudgeDrawingView: UIView {
 
     // 绘制方法
     override func draw(_ rect: CGRect) {
-        // Draw user brush strokes (semi-transparent blue)
+        // Draw user brush strokes
         smudgeColor.setStroke()
-        paths.forEach { path in
-            path.stroke()
+        paths.forEach { p in
+            p.stroke()
         }
         path.stroke()
 
         // Draw ISNet mask preview:
-        // isnetMaskOverlay is already inverted: white=background(remove), black=subject(keep)
-        // With clip(to: mask, cg):
-        //   - White in mask (background) → transparent → blue fill shows through
-        //   - Black in mask (subject) → opaque → blue fill blocked
-        // Result: blue appears on background (what will be removed)
+        // isnetMaskOverlay: white=background(remove), black=subject(keep)
+        // clip(to: mask): white pixels → transparent → blue fill shows through
+        //                 black pixels → opaque → blue fill blocked
+        // Result: blue only on background areas (what will be removed)
         if let maskImg = isnetMaskOverlay, let cg = maskImg.cgImage {
             guard let context = UIGraphicsGetCurrentContext() else { return }
             context.saveGState()
@@ -144,47 +147,44 @@ class SmudgeDrawingView: UIView {
     }
 
     // 导出为灰度图像（用于 inpainting）
-    // inpaint 期望：白色=消除区域，黑色=保留区域
-    // isnetMaskOverlay 已经是取反后的：白色=背景(消除)，黑色=主体(保留)
-    // 所以直接用，不需要再取反
+    // 策略：isnetMaskOverlay 已经经过 resizeAndInvertMaskForDisplay 处理，
+    // 取反后的 mask: white=background(消除), black=subject(保留)
+    // 导出时: 白色=消除区域, 黑色=保留区域
+    // 直接把 inverted mask 绘制到画布上，不做额外裁剪
     func exportAsGrayscaleImage() -> UIImage? {
         let screenScale = UIScreen.main.scale
-        let scaledSize = CGSize(width: self.bounds.size.width * screenScale, height: self.bounds.size.height * screenScale)
+        let w = Int(self.bounds.size.width * screenScale)
+        let h = Int(self.bounds.size.height * screenScale)
 
-        UIGraphicsBeginImageContextWithOptions(scaledSize, false, 1.0)
+        UIGraphicsBeginImageContextWithOptions(CGSize(width: w, height: h), false, 1.0)
         guard let context = UIGraphicsGetCurrentContext() else { return nil }
 
-        // Step 1: Fill background - what to preserve (black = preserve in inpaint)
-        exportBackgroundColor.setFill()
-        context.fill(CGRect(x: 0, y: 0, width: scaledSize.width, height: scaledSize.height))
+        // Step 1: Fill entire canvas with WHITE (all = to be inpainted / removed)
+        // inpaint 期望白色=消除区域
+        context.setFillColor(UIColor.white.cgColor)
+        context.fill(CGRect(x: 0, y: 0, width: w, height: h)
 
-        // Step 2: Draw user strokes as white (will be inpainted)
-        paths.forEach { path in
-            let scaledPath = UIBezierPath(cgPath: path.cgPath)
+        // Step 2: Draw user strokes as BLACK (subject = to be preserved / not removed)
+        exportLineColor.setFill()
+        paths.forEach { p in
+            let scaledPath = UIBezierPath(cgPath: p.cgPath)
             scaledPath.apply(CGAffineTransform(scaleX: screenScale, y: screenScale))
-            exportLineColor.setStroke()
             scaledPath.lineWidth = brushSize * screenScale
             scaledPath.lineCapStyle = .round
             scaledPath.stroke()
         }
 
-        // Step 3: Apply ISNet mask (already inverted by resizeAndInvertMaskForDisplay)
-        // isnetMaskOverlay is: white=background(remove), black=subject(keep)
-        // Clip white areas → fill white (will be inpainted)
+        // Step 3: Apply ISNet inverted mask
+        // isnetMaskOverlay is already: white=background(remove), black=subject(keep)
+        // Draw it to cover the background (white in mask = background to remove)
         if let maskImg = isnetMaskOverlay {
-            let maskRect = CGRect(x: 0, y: 0, width: scaledSize.width, height: scaledSize.height)
-            if let maskCG = maskImg.cgImage {
-                context.saveGState()
-                context.clip(to: maskRect, mask: maskCG)
-                UIColor.white.setFill()
-                context.fill(maskRect)
-                context.restoreGState()
-            }
+            // Draw the inverted mask directly (white=background=remove)
+            maskImg.draw(in: CGRect(x: 0, y: 0, width: w, height: h)
         }
 
-        let image = UIGraphicsGetImageFromCurrentImageContext()
+        let result = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
-        return image
+        return result
     }
 
     public func clean() {
@@ -218,7 +218,7 @@ extension UIImage {
             space: colorSpace,
             bitmapInfo: CGImageAlphaInfo.none.rawValue
         ) else { return nil }
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height)
 
         // Invert: 255 - value
         for i in 0..<pixelData.count {
