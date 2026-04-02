@@ -17,6 +17,7 @@ class SmudgeDrawingView: UIView {
     var exportLineColor: UIColor = .white // 涂抹部分导出时的颜色
     var exportBackgroundColor: UIColor = .black // 未涂抹部分导出时的颜色
     var brushSize: CGFloat = 20.0 // 默认笔刷大小
+    var onStrokeCompleted: (() -> Void)?
 
 
     init() {
@@ -127,6 +128,9 @@ class SmudgeDrawingView: UIView {
 
         // 重绘视图以显示最终的绘图
         self.setNeedsDisplay()
+
+        // 通知涂抹完成
+        onStrokeCompleted?()
     }
 
     // 绘制方法
@@ -136,6 +140,59 @@ class SmudgeDrawingView: UIView {
             path.stroke()
         }
         path.stroke()
+    }
+
+    /// 导出为与目标图像尺寸匹配的灰度蒙版（处理 scaleAspectFit 的偏移）
+    /// - Parameter imageSize: 实际图像尺寸，用于计算 aspect-fit 区域
+    func exportAsGrayscaleImage(for imageSize: CGSize) -> UIImage? {
+        let viewSize = self.bounds.size
+        guard viewSize.width > 0, viewSize.height > 0 else { return nil }
+
+        // 计算 aspect-fit 后图像在 view 中的实际显示区域
+        let imageAspect = imageSize.width / imageSize.height
+        let viewAspect = viewSize.width / viewSize.height
+
+        let displayRect: CGRect
+        if imageAspect > viewAspect {
+            // 图像更宽，上下有留白
+            let displayWidth = viewSize.width
+            let displayHeight = viewSize.width / imageAspect
+            let yOffset = (viewSize.height - displayHeight) / 2.0
+            displayRect = CGRect(x: 0, y: yOffset, width: displayWidth, height: displayHeight)
+        } else {
+            // 图像更高，左右有留白
+            let displayHeight = viewSize.height
+            let displayWidth = viewSize.height * imageAspect
+            let xOffset = (viewSize.width - displayWidth) / 2.0
+            displayRect = CGRect(x: xOffset, y: 0, width: displayWidth, height: displayHeight)
+        }
+
+        // 输出图像为实际图像尺寸
+        UIGraphicsBeginImageContextWithOptions(imageSize, false, 1.0)
+        guard let context = UIGraphicsGetCurrentContext() else { return nil }
+
+        exportBackgroundColor.setFill()
+        context.fill(CGRect(origin: .zero, size: imageSize))
+
+        // 将 view 坐标映射到图像坐标
+        let scaleX = imageSize.width / displayRect.width
+        let scaleY = imageSize.height / displayRect.height
+
+        paths.forEach { p in
+            let mappedPath = UIBezierPath(cgPath: p.cgPath)
+            // 先平移去掉 aspect-fit 偏移，再缩放到图像坐标
+            var transform = CGAffineTransform(translationX: -displayRect.origin.x, y: -displayRect.origin.y)
+            transform = transform.concatenating(CGAffineTransform(scaleX: scaleX, y: scaleY))
+            mappedPath.apply(transform)
+            exportLineColor.setStroke()
+            mappedPath.lineWidth = p.lineWidth * scaleX
+            mappedPath.lineCapStyle = .round
+            mappedPath.stroke()
+        }
+
+        let image = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return image
     }
 
     // 导出为灰度图像
@@ -168,11 +225,34 @@ class SmudgeDrawingView: UIView {
         return image
     }
 
-    
+
+    /// 是否有笔画可以撤销
+    var hasStrokes: Bool { !paths.isEmpty }
+
+    /// 撤销最后一笔涂抹
+    @discardableResult
+    func undoLastStroke() -> Bool {
+        guard !paths.isEmpty else { return false }
+        paths.removeLast()
+        setNeedsDisplay()
+        return true
+    }
+
     public func clean() {
         path = UIBezierPath()
         paths = []
         touchPoints = []
+        self.setNeedsDisplay()
+    }
+
+    /// Draw filled rectangular masks (e.g., from face detection) onto the drawing view.
+    /// - Parameter rects: Array of CGRect in the view's coordinate space
+    public func drawMasks(_ rects: [CGRect]) {
+        for rect in rects {
+            let maskPath = UIBezierPath(roundedRect: rect, cornerRadius: brushSize / 2)
+            maskPath.lineWidth = brushSize
+            paths.append(maskPath)
+        }
         self.setNeedsDisplay()
     }
 }

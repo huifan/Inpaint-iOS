@@ -14,6 +14,7 @@ class SplitImageView: UIView {
     private let imageViewB = UIImageView()
     private let customMaskView = UIView()
     private let sliderView = UIView()
+    private let sliderHandle = UIView()
 
     // 便利初始化方法接受可选的UIImage
     convenience init(imageA: UIImage?, imageB: UIImage?) {
@@ -36,8 +37,8 @@ class SplitImageView: UIView {
 
     private func setupViews() {
         // 配置imageViewA和imageViewB
-        imageViewA.contentMode = .scaleAspectFill
-        imageViewB.contentMode = .scaleAspectFill
+        imageViewA.contentMode = .scaleAspectFit
+        imageViewB.contentMode = .scaleAspectFit
 
         imageViewA.clipsToBounds = true
         imageViewB.clipsToBounds = true
@@ -75,14 +76,46 @@ class SplitImageView: UIView {
             make.centerX.equalToSuperview()
         }
 
-        sliderView.backgroundColor = .black
+        sliderView.backgroundColor = .white
+        sliderView.layer.shadowColor = UIColor.black.cgColor
+        sliderView.layer.shadowOpacity = 0.5
+        sliderView.layer.shadowRadius = 2
+        sliderView.layer.shadowOffset = .zero
+
+        // 中间的拖动手柄
+        sliderView.addSubview(sliderHandle)
+        sliderHandle.backgroundColor = .white
+        sliderHandle.layer.cornerRadius = 16
+        sliderHandle.layer.shadowColor = UIColor.black.cgColor
+        sliderHandle.layer.shadowOpacity = 0.3
+        sliderHandle.layer.shadowRadius = 3
+        sliderHandle.layer.shadowOffset = .zero
+        sliderHandle.snp.makeConstraints { make in
+            make.centerX.centerY.equalToSuperview()
+            make.width.height.equalTo(32)
+        }
+
+        // 手柄上的左右箭头指示
+        let arrowLabel = UILabel()
+        arrowLabel.text = "◂ ▸"
+        arrowLabel.textColor = .darkGray
+        arrowLabel.font = .systemFont(ofSize: 11, weight: .bold)
+        arrowLabel.textAlignment = .center
+        sliderHandle.addSubview(arrowLabel)
+        arrowLabel.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+        }
     }
     
-    var maskX: CGFloat = 0
-    
+    /// 滑块相对于中心的偏移量
+    private var sliderOffset: CGFloat = 0
+    /// 手势开始时的偏移量
+    private var panStartOffset: CGFloat = 0
+
     override func layoutSubviews() {
         super.layoutSubviews()
-        customMaskView.frame = CGRect(x: 0, y: 0, width: maskX + self.frame.size.width / 2.0, height: bounds.height)
+        let sliderX = bounds.width / 2.0 + sliderOffset
+        customMaskView.frame = CGRect(x: 0, y: 0, width: sliderX, height: bounds.height)
     }
 
     private func addPanGesture() {
@@ -91,12 +124,21 @@ class SplitImageView: UIView {
     }
 
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        let translation = gesture.translation(in: self)
-        sliderView.snp.updateConstraints { make in
-            make.centerX.equalToSuperview().offset(translation.x)
+        switch gesture.state {
+        case .began:
+            panStartOffset = sliderOffset
+        case .changed, .ended:
+            let translation = gesture.translation(in: self)
+            let halfWidth = bounds.width / 2.0
+            // 限制在视图边界内
+            sliderOffset = min(halfWidth, max(-halfWidth, panStartOffset + translation.x))
+            sliderView.snp.updateConstraints { make in
+                make.centerX.equalToSuperview().offset(sliderOffset)
+            }
+            setNeedsLayout()
+        default:
+            break
         }
-        maskX = translation.x
-        setNeedsLayout()
     }
 
     // 允许外部设置图片A，接受UIImage?类型

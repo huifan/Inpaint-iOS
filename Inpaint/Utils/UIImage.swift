@@ -72,6 +72,18 @@ extension UIImage {
 }
 
 
+extension UIImage {
+    /// 修正图片方向，将 EXIF 旋转信息烘焙到像素数据中
+    func normalizedOrientation() -> UIImage {
+        guard imageOrientation != .up else { return self }
+        UIGraphicsBeginImageContextWithOptions(size, false, scale)
+        draw(in: CGRect(origin: .zero, size: size))
+        let normalized = UIGraphicsGetImageFromCurrentImageContext() ?? self
+        UIGraphicsEndImageContext()
+        return normalized
+    }
+}
+
 extension URL {
     static var documentsDirectory: URL {
         return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]

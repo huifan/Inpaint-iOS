@@ -10,8 +10,6 @@ import Vision
 import SnapKit
 import Toast_Swift
 
-let kLimitImageSize: CGFloat = 2048
-
 class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
 
     lazy var selectImageBtn: UIButton = {

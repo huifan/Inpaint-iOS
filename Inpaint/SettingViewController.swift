@@ -1,5 +1,5 @@
 //
-//  SettingViewControoler.swift
+//  SettingViewController.swift
 //  Inpaint
 //
 //  Created by wudijimao on 2024/1/17.
@@ -10,7 +10,7 @@ import SwiftUI
 import Toast_Swift
 
 class SettingViewController: UIViewController {
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
@@ -39,7 +39,7 @@ import SwiftUI
 struct SettingView: View {
     // 创建一个状态属性，用于控制恢复购买的操作
     @State private var isRestoring = false
-    
+
     var body: some View {
         // 使用List来创建一个表格视图
         List {
@@ -65,7 +65,7 @@ struct SettingView: View {
         // 使用navigationBarTitle来设置导航栏的标题
         .navigationBarTitle("设置")
     }
-    
+
     // 定义一个恢复购买的方法
     func restorePurchases() {
         // 恢复完成后，设置isRestoring为false

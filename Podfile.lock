@@ -7,7 +7,7 @@ DEPENDENCIES:
   - Toast-Swift
 
 SPEC REPOS:
-  trunk:
+  http://cdn.cocoapods.org/:
     - SnapKit
     - Toast-Swift
 
@@ -15,6 +15,6 @@ SPEC CHECKSUMS:
   SnapKit: e01d52ebb8ddbc333eefe2132acf85c8227d9c25
   Toast-Swift: 9b6a70f28b3bf0b96c40d46c0c4b9d6639846711
 
-PODFILE CHECKSUM: b030f3dbaa9d91c19fd2db60cec1f6f2f425d61f
+PODFILE CHECKSUM: 4361cf398f1fa6cfb6382d62329d5e3ce321b9f5
 
-COCOAPODS: 1.11.3
+COCOAPODS: 1.16.2

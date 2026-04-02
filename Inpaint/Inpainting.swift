@@ -7,6 +7,7 @@
 
 import UIKit
 import CoreML
+import os.signpost
 
 
 protocol ImageInpenting {
@@ -15,6 +16,8 @@ protocol ImageInpenting {
 }
 
 class LaMaImageInpenting: ImageInpenting {
+
+    static let shared = LaMaImageInpenting()
 
     let workQueue = DispatchQueue.init(label: "LaMaImageInpenting")
     
@@ -27,7 +30,17 @@ class LaMaImageInpenting: ImageInpenting {
     var lama: LaMaFP16_512?
     
     public init() {
-        self.preload()
+        workQueue.async {
+            self.preload()
+        }
+    }
+
+    /// 触发预加载，完成后在主线程回调。若已加载完毕则立即回调。
+    func warmup(completion: @escaping () -> Void) {
+        workQueue.async {
+            // preload() 已在 init 排队，此任务排在它之后，保证模型已就绪
+            DispatchQueue.main.async { completion() }
+        }
     }
     
     func inpent(image: UIImage, mask: UIImage, inpaintingRects:[CGRect], completion: @escaping (UIImage?, NSError?) -> Void) {
@@ -61,21 +74,69 @@ class LaMaImageInpenting: ImageInpenting {
         }
     }
 
-    func preload() {
+    /// Process multiple regions iteratively — each cluster is cropped, inpainted, and written back
+    /// before the next cluster. This avoids downscaling the entire image to 512x512 when text
+    /// is spread across a large area.
+    func inpentIteratively(image: UIImage, mask: UIImage, clusters: [[CGRect]], progress: ((Float) -> Void)?, completion: @escaping (UIImage?, NSError?) -> Void) {
         workQueue.async {
-            do {
-                self.lama = try LaMaFP16_512.init(configuration: self.config)
-            } catch(let e) {
-                print(e)
+            guard let lama = self.lama else {
+                DispatchQueue.main.async { completion(nil, nil) }
+                return
+            }
+            var currentImage = image
+            let imageBounds = CGRect(origin: .zero, size: image.size)
+            let total = Float(clusters.count)
+
+            for (index, cluster) in clusters.enumerated() {
+                var rect = cluster.largestBoundingRect()
+                // Context padding so the model has surrounding pixels for seamless fill
+                let pad = max(rect.width, rect.height) * 0.25
+                rect = rect.insetBy(dx: -pad, dy: -pad).intersection(imageBounds)
+
+                let imgs = currentImage.processForInpainting(
+                    mask: mask, cropFrame: rect,
+                    targetSize: .init(width: kImageSize, height: kImageSize))
+
+                guard let imgBuffer = imgs.img.buffer,
+                      let maskBuffer = imgs.mask.grayBuffer else { continue }
+
+                do {
+                    let result = try lama.prediction(image: imgBuffer, mask: maskBuffer)
+                    guard let outImage = result.output.uiImage else { continue }
+                    currentImage = imgs.transpose.writeBack(to: currentImage, subImg: outImage)
+                } catch {
+                    print(error)
+                    continue
+                }
+
+                DispatchQueue.main.async {
+                    progress?((Float(index) + 1.0) / total)
+                }
+            }
+
+            DispatchQueue.main.async {
+                completion(currentImage, nil)
             }
         }
     }
-    
+
+    func preload() {
+        let log = OSLog(subsystem: "com.inpaint", category: .pointsOfInterest)
+        os_signpost(.begin, log: log, name: "LaMa.preload")
+        do {
+            self.lama = try LaMaFP16_512.init(configuration: self.config)
+        } catch(let e) {
+            print(e)
+        }
+        os_signpost(.end, log: log, name: "LaMa.preload")
+    }
+
 }
 
 
 
 let kImageSize = 512
+let kLimitImageSize: CGFloat = 2048
 
 extension UIImage {
 
