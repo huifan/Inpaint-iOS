@@ -174,12 +174,9 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         picker.dismiss(animated: true, completion: {
             let vc: UIViewController
             if self.is3DPhotoGen {
-                vc = DeepImageViewController(toolID: "depth_image")
+                vc = DeepImageViewController(image: scaledImage)
             } else {
-                vc = InpaintViewController(toolID: "inpainting")
-            }
-            if let vcWithImage = vc as? BaseEditingViewController {
-                vcWithImage.setImage(scaledImage)
+                vc = InpaintingViewController(image: scaledImage)
             }
             self.navigationController?.pushViewController(vc, animated: true)
         })

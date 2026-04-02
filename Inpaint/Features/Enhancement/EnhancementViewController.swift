@@ -11,18 +11,10 @@ import Toast_Swift
 
 class EnhancementViewController: BaseEditingViewController {
 
+    override var toolID: String { "image_enhance" }
+
     private let processor = EnhancementProcessor()
     private var enhancementMode: EnhancementMode = .autoEnhance
-
-    // MARK: - Init
-
-    @MainActor override init(toolID: String) {
-        super.init(toolID: toolID)
-    }
-
-    @MainActor required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
 
     // MARK: - UI
 
@@ -48,21 +40,6 @@ class EnhancementViewController: BaseEditingViewController {
     // MARK: - Setup
 
     override func setupToolUI() {
-        if !isImageSelected {
-            setupEmptyState(config: EmptyStateConfig(
-                toolID: toolID,
-                iconName: "sparkles",
-                titleKey: "empty_enhance_title",
-                descriptionKey: "empty_enhance_description",
-                buttonTitleKey: "select_photo"
-            ))
-            return
-        }
-
-        setupEnhancementUI()
-    }
-
-    private func setupEnhancementUI() {
         let toolbar = UIView()
         toolbar.backgroundColor = .systemBackground
         view.addSubview(toolbar)
@@ -92,36 +69,19 @@ class EnhancementViewController: BaseEditingViewController {
     }
 
     override func setupNavigationItems() {
-        setupUnifiedNavigationItems()
-
         let enhanceButton = UIBarButtonItem(
             title: *"enhance",
-            style: .done, target: self,
+            style: .plain, target: self,
             action: #selector(onEnhance)
         )
+        let saveButton = UIBarButtonItem(
+            title: *"save_to_photo_lib",
+            style: .plain, target: self,
+            action: #selector(onSave)
+        )
         compareButton = makeCompareButton()
-        navigationItem.rightBarButtonItems = buildRightBarButtonItems(primaryItems: [enhanceButton, undoButton])
-    }
-
-    // MARK: - Empty State
-
-    override func presentImagePicker() {
-        pickImageFromLibrary { [weak self] image in
-            guard let self else { return }
-            let scaledImage = image.scaleToLimit(size: CGSize(width: kLimitImageSize, height: kLimitImageSize))
-            self.setImage(scaledImage)
-        }
-    }
-
-    override func didSetImage() {
-        setupEnhancementUI()
-    }
-
-    override func resetEditState() {
-        super.resetEditState()
-        enhancementMode = .autoEnhance
-        modeSelector.selectedSegmentIndex = 0
-        progressBar.isHidden = true
+        undoButton.isEnabled = false
+        navigationItem.rightBarButtonItems = [compareButton!, saveButton, enhanceButton, undoButton]
     }
 
     // MARK: - Actions

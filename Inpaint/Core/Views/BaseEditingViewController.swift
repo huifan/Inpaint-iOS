@@ -9,264 +9,14 @@ import UIKit
 import SnapKit
 import Toast_Swift
 
-// MARK: - Empty State Models
-
-enum EmptyStateImageSource {
-    case photoLibrary
-    case camera
-    case clipboard
-}
-
-struct EmptyStateConfig {
-    let toolID: String
-    let iconName: String
-    let titleKey: String
-    let descriptionKey: String
-    let buttonTitleKey: String
-    let primaryImageSource: EmptyStateImageSource = .photoLibrary
-}
-
-protocol EmptyStateViewDelegate: AnyObject {
-    func emptyStateViewDidTapSelectPhoto(_ view: EmptyStateView)
-    func emptyStateView(_ view: EmptyStateView, didSelectImageSource source: EmptyStateImageSource)
-}
-
-final class EmptyStateView: UIView {
-
-    weak var delegate: EmptyStateViewDelegate?
-
-    private var config: EmptyStateConfig?
-
-    private lazy var scrollContainerView: UIScrollView = {
-        let sv = UIScrollView()
-        sv.showsVerticalScrollIndicator = false
-        return sv
-    }()
-
-    private lazy var containerStack: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = 20
-        return stack
-    }()
-
-    private lazy var iconImageView: UIImageView = {
-        let iv = UIImageView()
-        iv.contentMode = .scaleAspectFit
-        iv.tintColor = .systemGray2
-        return iv
-    }()
-
-    private lazy var dashedBorderView: DashedBorderView = {
-        let view = DashedBorderView()
-        view.onTap = { [weak self] in
-            guard let self else { return }
-            self.delegate?.emptyStateViewDidTapSelectPhoto(self)
-        }
-        return view
-    }()
-
-    private lazy var titleLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 20, weight: .semibold)
-        label.textColor = .label
-        label.textAlignment = .center
-        return label
-    }()
-
-    private lazy var descriptionLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 15)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        return label
-    }()
-
-    private lazy var selectPhotoButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setImage(UIImage(systemName: "photo.badge.plus"), for: .normal)
-        btn.titleLabel?.font = .systemFont(ofSize: 17, weight: .medium)
-        btn.addTarget(self, action: #selector(onSelectPhoto), for: .touchUpInside)
-        return btn
-    }()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private func setupUI() {
-        backgroundColor = .systemBackground
-
-        addSubview(scrollContainerView)
-        scrollContainerView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
-
-        scrollContainerView.addSubview(containerStack)
-        containerStack.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(60)
-            make.leading.trailing.equalTo(self).inset(40)
-            make.bottom.equalToSuperview().offset(-60)
-            make.width.equalTo(scrollContainerView).offset(-80)
-        }
-
-        containerStack.addArrangedSubview(iconImageView)
-        iconImageView.snp.makeConstraints { make in
-            make.width.height.equalTo(64)
-        }
-
-        containerStack.addArrangedSubview(dashedBorderView)
-        dashedBorderView.snp.makeConstraints { make in
-            make.width.height.equalTo(200)
-        }
-
-        containerStack.addArrangedSubview(titleLabel)
-        containerStack.setCustomSpacing(12, after: titleLabel)
-
-        containerStack.addArrangedSubview(descriptionLabel)
-        containerStack.setCustomSpacing(24, after: descriptionLabel)
-
-        containerStack.addArrangedSubview(selectPhotoButton)
-        selectPhotoButton.snp.makeConstraints { make in
-            make.height.equalTo(50)
-            make.width.equalTo(200)
-        }
-    }
-
-    func configure(with config: EmptyStateConfig) {
-        self.config = config
-
-        iconImageView.image = UIImage(systemName: config.iconName)
-        titleLabel.text = *config.titleKey
-        descriptionLabel.text = *config.descriptionKey
-        selectPhotoButton.setTitle(*config.buttonTitleKey, for: .normal)
-
-        dashedBorderView.configure(
-            iconName: config.iconName,
-            placeholderKey: config.buttonTitleKey
-        )
-    }
-
-    @objc private func onSelectPhoto() {
-        guard let config else { return }
-        delegate?.emptyStateView(self, didSelectImageSource: config.primaryImageSource)
-    }
-}
-
-final class DashedBorderView: UIView {
-
-    var onTap: (() -> Void)?
-
-    private lazy var plusImageView: UIImageView = {
-        let iv = UIImageView()
-        iv.contentMode = .scaleAspectFit
-        iv.tintColor = .systemGray2
-        iv.image = UIImage(systemName: "photo.badge.plus")
-        return iv
-    }()
-
-    private lazy var placeholderLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 13)
-        label.textColor = .systemGray
-        label.textAlignment = .center
-        return label
-    }()
-
-    private lazy var contentStack: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [plusImageView, placeholderLabel])
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = 8
-        return stack
-    }()
-
-    private let dashPattern: [NSNumber] = [8, 4]
-    private let shapeLayer = CAShapeLayer()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private func setupUI() {
-        backgroundColor = .systemGray6
-        layer.cornerRadius = 16
-
-        shapeLayer.strokeColor = UIColor.systemGray3.cgColor
-        shapeLayer.lineDashPattern = dashPattern
-        shapeLayer.fillColor = nil
-        shapeLayer.lineWidth = 2
-        layer.mask = shapeLayer
-
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        addGestureRecognizer(tap)
-        isUserInteractionEnabled = true
-
-        addSubview(contentStack)
-        contentStack.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-        }
-
-        plusImageView.snp.makeConstraints { make in
-            make.width.height.equalTo(48)
-        }
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        let insetRect = bounds.insetBy(dx: 4, dy: 4)
-        shapeLayer.path = UIBezierPath(roundedRect: insetRect, cornerRadius: 12).cgPath
-    }
-
-    func configure(iconName: String, placeholderKey: String) {
-        placeholderLabel.text = *placeholderKey
-    }
-
-    @objc private func handleTap() {
-        onTap?()
-    }
-}
-
-// MARK: - Base Editing View Controller
-
 class BaseEditingViewController: UIViewController {
 
     // MARK: - Properties
 
-    let toolID: String
+    let originalImage: UIImage
 
-    init(toolID: String) {
-        self.toolID = toolID
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private(set) var originalImage: UIImage?
-    private(set) var isImageSelected: Bool = false
-    private var hasPendingImageSetup = false
-
-    var emptyStateView: EmptyStateView?
-    var replaceImageButton: UIBarButtonItem?
-    var compareButton: UIBarButtonItem? {
-        didSet { refreshOverflowMenu() }
-    }
-    private var overflowMenuButton: UIBarButtonItem?
-    private let imagePickerService = ImagePickerService()
+    /// Override in subclasses to record edit history
+    var toolID: String { "unknown" }
 
     lazy var scrollView: UIScrollView = {
         let sv = UIScrollView()
@@ -291,78 +41,18 @@ class BaseEditingViewController: UIViewController {
 
     var canUndo: Bool { !undoStack.isEmpty }
 
-    var hasUnsavedChanges: Bool { !undoStack.isEmpty }
+    lazy var undoButton = UIBarButtonItem(title: *"undo", style: .plain, target: self, action: #selector(onUndo))
 
-    lazy var undoButton: UIBarButtonItem = {
-        let button = UIBarButtonItem(
-            image: UIImage(systemName: "arrow.uturn.backward"),
-            style: .plain,
-            target: self,
-            action: #selector(onUndo)
-        )
-        button.accessibilityLabel = *"undo"
-        return button
-    }()
+    // MARK: - Init
 
-    // MARK: - Image Management
-
-    func setImage(_ image: UIImage) {
+    init(image: UIImage) {
         self.originalImage = image
-        self.isImageSelected = true
-        self.imageView.image = image
-        self.hasPendingImageSetup = !isViewLoaded
-
-        emptyStateView?.isHidden = true
-        scrollView.isHidden = false
-        replaceImageButton?.isEnabled = true
-        refreshOverflowMenu()
-
-        guard isViewLoaded else { return }
-        didSetImage()
+        super.init(nibName: nil, bundle: nil)
+        imageView.image = image
     }
 
-    func didSetImage() {
-        // Override in subclasses to perform setup after image is set
-    }
-
-    func setupEmptyState(config: EmptyStateConfig) {
-        let view = EmptyStateView()
-        view.configure(with: config)
-        view.delegate = self
-        view.isHidden = false
-        self.emptyStateView = view
-        self.view.addSubview(view)
-        view.snp.makeConstraints { make in
-            make.leading.trailing.equalToSuperview()
-            make.top.bottom.equalTo(self.view.safeAreaLayoutGuide)
-        }
-    }
-
-    func presentImagePicker() {
-        // Override in subclasses to present image picker
-    }
-
-    func pickImageFromLibrary(_ completion: @escaping (UIImage) -> Void) {
-        imagePickerService.pickImage(from: self) { image in
-            guard let image else { return }
-            completion(image)
-        }
-    }
-
-    func replaceImage() {
-        imagePickerService.pickImage(from: self) { [weak self] image in
-            guard let self, let image else { return }
-            let scaledImage = image.scaleToLimit(size: CGSize(width: kLimitImageSize, height: kLimitImageSize))
-            self.resetEditState()
-            self.setImage(scaledImage)
-        }
-    }
-
-    func resetEditState() {
-        undoStack.removeAll()
-        undoButton.isEnabled = false
-        compareButton?.isEnabled = false
-        refreshOverflowMenu()
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 
     // MARK: - Lifecycle
@@ -372,13 +62,7 @@ class BaseEditingViewController: UIViewController {
 
         view.backgroundColor = .systemBackground
         setupBaseUI()
-        if isImageSelected, hasPendingImageSetup {
-            scrollView.isHidden = false
-            didSetImage()
-            hasPendingImageSetup = false
-        } else {
-            setupToolUI()
-        }
+        setupToolUI()
         setupNavigationItems()
     }
 
@@ -388,9 +72,9 @@ class BaseEditingViewController: UIViewController {
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview()
-            make.top.bottom.equalTo(view.safeAreaLayoutGuide)
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
+            make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom)
         }
-        scrollView.isHidden = true
 
         scrollView.addSubview(imageView)
         imageView.snp.makeConstraints { make in
@@ -408,167 +92,10 @@ class BaseEditingViewController: UIViewController {
 
     /// Override in subclasses to customize navigation items
     func setupNavigationItems() {
-        setupUnifiedNavigationItems()
-    }
-
-    // MARK: - Unified Navigation
-
-    func setupUnifiedNavigationItems() {
         undoButton.isEnabled = false
-
-        let backButton = UIBarButtonItem(
-            image: UIImage(systemName: "chevron.left"),
-            style: .plain,
-            target: self,
-            action: #selector(handleBack)
-        )
-        backButton.accessibilityLabel = *"back"
-
-        let titleLabel = UILabel()
-        titleLabel.text = toolDisplayName
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.textAlignment = .center
-        navigationItem.titleView = titleLabel
-
-        replaceImageButton = UIBarButtonItem(
-            image: UIImage(systemName: "photo.on.rectangle"),
-            style: .plain,
-            target: self,
-            action: #selector(onReplaceImage)
-        )
-        replaceImageButton?.accessibilityLabel = *"replace_image"
-        replaceImageButton?.isEnabled = isImageSelected
-
-        overflowMenuButton = UIBarButtonItem(
-            image: UIImage(systemName: "ellipsis.circle"),
-            menu: buildOverflowMenu()
-        )
-
-        navigationItem.leftBarButtonItems = [backButton]
-        navigationItem.rightBarButtonItems = [overflowMenuButton!]
-    }
-
-    func buildRightBarButtonItems(primaryItems: [UIBarButtonItem]) -> [UIBarButtonItem] {
-        if overflowMenuButton == nil {
-            overflowMenuButton = UIBarButtonItem(
-                image: UIImage(systemName: "ellipsis.circle"),
-                menu: buildOverflowMenu()
-            )
-        }
-        refreshOverflowMenu()
-        return primaryItems + [overflowMenuButton!]
-    }
-
-    private func buildOverflowMenu() -> UIMenu {
-        var items: [UIMenuElement] = []
-
-        let replaceAction = UIAction(
-            title: *"replace_image",
-            image: UIImage(systemName: "photo.on.rectangle"),
-            attributes: isImageSelected ? [] : [.disabled]
-        ) { [weak self] _ in
-            self?.onReplaceImage()
-        }
-        items.append(replaceAction)
-
-        if compareButton != nil {
-            let compareAction = UIAction(
-                title: *"compare",
-                image: UIImage(systemName: "rectangle.split.2x1"),
-                attributes: compareButton?.isEnabled == true ? [] : [.disabled]
-            ) { [weak self] _ in
-                self?.onCompare()
-            }
-            items.append(compareAction)
-        }
-
-        let saveMenu = UIMenu(
-            title: *"save_to_photo_lib",
-            image: UIImage(systemName: "square.and.arrow.down"),
-            children: createSaveMenu().children
-        )
-        items.append(saveMenu)
-
-        return UIMenu(title: "", children: items)
-    }
-
-    func refreshOverflowMenu() {
-        overflowMenuButton?.menu = buildOverflowMenu()
-    }
-
-    var toolDisplayName: String {
-        switch toolID {
-        case "inpainting": return *"tool_inpainting"
-        case "background_removal": return *"tool_background_removal"
-        case "image_enhance": return *"tool_image_enhance"
-        case "mosaic": return *"tool_mosaic"
-        case "photo_filter": return *"tool_photo_filter"
-        case "text_removal": return *"tool_text_removal"
-        case "smart_crop": return *"tool_smart_crop"
-        case "depth_image": return *"tool_depth_image"
-        case "watermark": return *"tool_watermark"
-        default: return toolID
-        }
-    }
-
-    @objc func handleBack() {
-        showUnsavedChangesAlert()
-    }
-
-    @objc func onReplaceImage() {
-        if hasUnsavedChanges {
-            showReplaceImageConfirmation()
-        } else {
-            replaceImage()
-        }
-    }
-
-    func showUnsavedChangesAlert() {
-        guard hasUnsavedChanges else {
-            navigationController?.popViewController(animated: true)
-            return
-        }
-
-        let alert = UIAlertController(
-            title: *"unsaved_changes_title",
-            message: *"unsaved_changes_message",
-            preferredStyle: .actionSheet
-        )
-
-        alert.addAction(UIAlertAction(title: *"save_and_exit", style: .default) { [weak self] _ in
-            self?.saveAndExit()
-        })
-
-        alert.addAction(UIAlertAction(title: *"discard_changes", style: .destructive) { [weak self] _ in
-            self?.navigationController?.popViewController(animated: true)
-        })
-
-        alert.addAction(UIAlertAction(title: *"cancel", style: .cancel))
-
-        if let popover = alert.popoverPresentationController {
-            popover.sourceView = view
-            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
-        }
-
-        present(alert, animated: true)
-    }
-
-    private func saveAndExit() {
-        saveAsPNG()
-        navigationController?.popViewController(animated: true)
-    }
-
-    func showReplaceImageConfirmation() {
-        let alert = UIAlertController(
-            title: *"replace_image",
-            message: *"replace_image_unsaved_message",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: *"replace", style: .default) { [weak self] _ in
-            self?.replaceImage()
-        })
-        alert.addAction(UIAlertAction(title: *"cancel", style: .cancel))
-        present(alert, animated: true)
+        let saveMenu = createSaveMenu()
+        let saveButton = UIBarButtonItem(title: *"save_to_photo_lib", menu: saveMenu)
+        navigationItem.rightBarButtonItems = [saveButton, undoButton]
     }
 
     func createSaveMenu() -> UIMenu {
@@ -600,16 +127,17 @@ class BaseEditingViewController: UIViewController {
     func pushUndo(_ image: UIImage) {
         undoStack.append(image)
         undoButton.isEnabled = true
+        // 有操作历史后启用对比按钮
         compareButton?.isEnabled = true
-        refreshOverflowMenu()
     }
+
+    /// 子类设置此属性以自动管理对比按钮状态
+    var compareButton: UIBarButtonItem?
 
     @objc func onUndo() {
         guard let img = undoStack.popLast() else { return }
         imageView.image = img
         undoButton.isEnabled = !undoStack.isEmpty
-        compareButton?.isEnabled = canUndo
-        refreshOverflowMenu()
     }
 
     override func didReceiveMemoryWarning() {
@@ -645,7 +173,7 @@ class BaseEditingViewController: UIViewController {
                         EditHistoryService.shared.addRecord(toolID: toolID, resultImage: image)
                         self.view.makeToast(*"toast_save_success", duration: 2.0, position: .bottom)
                     } else {
-                        self.view.makeToast(*"toast_save_error" + " " + (error?.localizedDescription ?? ""), duration: 3.0, position: .bottom)
+                        self.view.makeToast("\(*"toast_save_error") \(error?.localizedDescription ?? "")", duration: 3.0, position: .bottom)
                     }
                 }
             }
@@ -665,7 +193,7 @@ class BaseEditingViewController: UIViewController {
                         EditHistoryService.shared.addRecord(toolID: toolID, resultImage: image)
                         self.view.makeToast(*"toast_save_success", duration: 2.0, position: .bottom)
                     } else {
-                        self.view.makeToast(*"toast_save_error" + " " + (error?.localizedDescription ?? ""), duration: 3.0, position: .bottom)
+                        self.view.makeToast("\(*"toast_save_error") \(error?.localizedDescription ?? "")", duration: 3.0, position: .bottom)
                     }
                 }
             }
@@ -774,10 +302,6 @@ class BaseEditingViewController: UIViewController {
     func showError(_ message: String) {
         processingOverlay.state = .error(message)
     }
-
-    func didBeginZoomingImage() {}
-
-    func didEndZoomingImage() {}
 }
 
 // MARK: - UIScrollViewDelegate
@@ -785,25 +309,5 @@ class BaseEditingViewController: UIViewController {
 extension BaseEditingViewController: UIScrollViewDelegate {
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         imageView
-    }
-
-    func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
-        didBeginZoomingImage()
-    }
-
-    func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
-        didEndZoomingImage()
-    }
-}
-
-// MARK: - EmptyStateViewDelegate
-
-extension BaseEditingViewController: EmptyStateViewDelegate {
-    func emptyStateViewDidTapSelectPhoto(_ view: EmptyStateView) {
-        presentImagePicker()
-    }
-
-    func emptyStateView(_ view: EmptyStateView, didSelectImageSource source: EmptyStateImageSource) {
-        presentImagePicker()
     }
 }

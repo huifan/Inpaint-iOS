@@ -11,19 +11,11 @@ import Toast_Swift
 
 class BackgroundRemovalViewController: BaseEditingViewController {
 
+    override var toolID: String { "background_removal" }
+
     private let processor = BackgroundRemovalProcessor()
     private var backgroundMode: BackgroundMode = .transparent
     private var imagePicker: ImagePickerService?
-
-    // MARK: - Init
-
-    @MainActor override init(toolID: String) {
-        super.init(toolID: toolID)
-    }
-
-    @MainActor required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
 
     // MARK: - UI
 
@@ -52,21 +44,6 @@ class BackgroundRemovalViewController: BaseEditingViewController {
     // MARK: - Setup
 
     override func setupToolUI() {
-        if !isImageSelected {
-            setupEmptyState(config: EmptyStateConfig(
-                toolID: toolID,
-                iconName: "person.crop.rectangle",
-                titleKey: "empty_bg_removal_title",
-                descriptionKey: "empty_bg_removal_description",
-                buttonTitleKey: "select_photo"
-            ))
-            return
-        }
-
-        setupBackgroundRemovalUI()
-    }
-
-    private func setupBackgroundRemovalUI() {
         // Checkerboard behind imageView to show transparency
         imageView.superview?.insertSubview(checkerboardView, belowSubview: imageView)
         checkerboardView.snp.makeConstraints { make in
@@ -97,35 +74,19 @@ class BackgroundRemovalViewController: BaseEditingViewController {
     }
 
     override func setupNavigationItems() {
-        setupUnifiedNavigationItems()
-
         let removeButton = UIBarButtonItem(
             title: *"remove_background",
-            style: .done, target: self,
+            style: .plain, target: self,
             action: #selector(onRemoveBackground)
         )
+        let saveButton = UIBarButtonItem(
+            title: *"save_to_photo_lib",
+            style: .plain, target: self,
+            action: #selector(onSave)
+        )
         compareButton = makeCompareButton()
-        navigationItem.rightBarButtonItems = buildRightBarButtonItems(primaryItems: [removeButton, undoButton])
-    }
-
-    // MARK: - Empty State
-
-    override func presentImagePicker() {
-        pickImageFromLibrary { [weak self] image in
-            guard let self else { return }
-            let scaledImage = image.scaleToLimit(size: CGSize(width: kLimitImageSize, height: kLimitImageSize))
-            self.setImage(scaledImage)
-        }
-    }
-
-    override func didSetImage() {
-        setupBackgroundRemovalUI()
-    }
-
-    override func resetEditState() {
-        super.resetEditState()
-        backgroundMode = .transparent
-        modeSelector.selectedSegmentIndex = 0
+        undoButton.isEnabled = false
+        navigationItem.rightBarButtonItems = [compareButton!, saveButton, removeButton, undoButton]
     }
 
     // MARK: - Actions

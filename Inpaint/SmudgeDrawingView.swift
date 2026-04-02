@@ -8,10 +8,9 @@
 import Foundation
 import UIKit
 
-class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
+class SmudgeDrawingView: UIView {
     
     private var paths = [UIBezierPath]()
-    private var filledPaths = [UIBezierPath]()
     private var path: UIBezierPath = UIBezierPath()
     private var touchPoints: [CGPoint] = []
     var smudgeColor: UIColor = UIColor(red: 0.00, green: 0.48, blue: 1.00, alpha: 0.5) // 默认为半透明的淡蓝色
@@ -25,10 +24,8 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
         super.init(frame: .zero)
         self.backgroundColor = .clear
         self.isUserInteractionEnabled = true
-        self.isMultipleTouchEnabled = true
         
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(panGestureAction(_:)))
-        panGesture.delegate = self
         panGesture.maximumNumberOfTouches = 1
         self.addGestureRecognizer(panGesture)
     }
@@ -40,7 +37,7 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
     // 计算绘制区域的边界
     public var drawBounds: [CGRect] {
         get {
-            if paths.isEmpty && filledPaths.isEmpty {
+            if paths.isEmpty {
                 return []
             }
             var rects = [CGRect]()
@@ -53,18 +50,6 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
                 // 扩大 CGRect
                 rect = rect.insetBy(dx: -expandBy, dy: -expandBy)
                 rect = CGRect(x: rect.origin.x * UIScreen.main.scale, y: rect.origin.y * UIScreen.main.scale, width: rect.size.width * UIScreen.main.scale, height: rect.size.height * UIScreen.main.scale)
-                rects.append(rect)
-            }
-            filledPaths.forEach { path in
-                guard !path.isEmpty else { return }
-                var rect = path.bounds
-                rect = rect.insetBy(dx: -5, dy: -5)
-                rect = CGRect(
-                    x: rect.origin.x * UIScreen.main.scale,
-                    y: rect.origin.y * UIScreen.main.scale,
-                    width: rect.size.width * UIScreen.main.scale,
-                    height: rect.size.height * UIScreen.main.scale
-                )
                 rects.append(rect)
             }
             guard rects.count > 0 else {
@@ -84,11 +69,6 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
     }
     
     @objc func panGestureAction(_ sender: UIPanGestureRecognizer) {
-        if sender.numberOfTouches > 1 {
-            cancelCurrentStroke()
-            return
-        }
-
         let touchPoint = sender.location(in: self)
         
         switch sender.state {
@@ -105,12 +85,6 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
         default:
             break
         }
-    }
-
-    private func cancelCurrentStroke() {
-        touchPoints.removeAll()
-        path.removeAllPoints()
-        setNeedsDisplay()
     }
     
     @inline(__always)
@@ -161,11 +135,6 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
 
     // 绘制方法
     override func draw(_ rect: CGRect) {
-        smudgeColor.setFill()
-        filledPaths.forEach { path in
-            path.fill()
-        }
-
         smudgeColor.setStroke()
         paths.forEach { path in
             path.stroke()
@@ -221,15 +190,6 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
             mappedPath.stroke()
         }
 
-        filledPaths.forEach { p in
-            let mappedPath = UIBezierPath(cgPath: p.cgPath)
-            var transform = CGAffineTransform(translationX: -displayRect.origin.x, y: -displayRect.origin.y)
-            transform = transform.concatenating(CGAffineTransform(scaleX: scaleX, y: scaleY))
-            mappedPath.apply(transform)
-            exportLineColor.setFill()
-            mappedPath.fill()
-        }
-
         let image = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return image
@@ -260,13 +220,6 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
             scaledPath.stroke()
         }
 
-        filledPaths.forEach { path in
-            let scaledPath = UIBezierPath(cgPath: path.cgPath)
-            scaledPath.apply(CGAffineTransform(scaleX: screenScale, y: screenScale))
-            exportLineColor.setFill()
-            scaledPath.fill()
-        }
-
         let image = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return image
@@ -274,18 +227,13 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
 
 
     /// 是否有笔画可以撤销
-    var hasStrokes: Bool { !paths.isEmpty || !filledPaths.isEmpty }
+    var hasStrokes: Bool { !paths.isEmpty }
 
     /// 撤销最后一笔涂抹
     @discardableResult
     func undoLastStroke() -> Bool {
-        if !paths.isEmpty {
-            paths.removeLast()
-        } else if !filledPaths.isEmpty {
-            filledPaths.removeLast()
-        } else {
-            return false
-        }
+        guard !paths.isEmpty else { return false }
+        paths.removeLast()
         setNeedsDisplay()
         return true
     }
@@ -293,7 +241,6 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
     public func clean() {
         path = UIBezierPath()
         paths = []
-        filledPaths = []
         touchPoints = []
         self.setNeedsDisplay()
     }
@@ -307,20 +254,5 @@ class SmudgeDrawingView: UIView, UIGestureRecognizerDelegate {
             paths.append(maskPath)
         }
         self.setNeedsDisplay()
-    }
-
-    public func drawFilledMasks(_ rects: [CGRect]) {
-        for rect in rects {
-            let maskPath = UIBezierPath(roundedRect: rect, cornerRadius: min(rect.width, rect.height) * 0.22)
-            filledPaths.append(maskPath)
-        }
-        self.setNeedsDisplay()
-    }
-
-    override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        guard let panGesture = gestureRecognizer as? UIPanGestureRecognizer else {
-            return true
-        }
-        return panGesture.numberOfTouches <= 1
     }
 }

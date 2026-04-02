@@ -90,7 +90,6 @@
 		C7DCF776F28801E3BF86C6CF /* WatermarkProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7924937B0B67C3865930226 /* WatermarkProcessor.swift */; };
 		CCFB37A4EB28C81AFF9584CC /* ToolRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 145EEB79723E767C17778ECC /* ToolRegistry.swift */; };
 		CD252F14334F00B35CDC619C /* ProcessingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D181BCA2B607D91C2E8E1F /* ProcessingOverlay.swift */; };
-		EEEEEEE22B50211C0008EF90 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEE12B50211C0008EF90 /* EmptyStateView.swift */; };
 		D5C74DCF008478436D80D5DA /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A8E91776C84870B9602A7C /* HomeViewController.swift */; };
 		E39414E260794026D55B030F /* FilterDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F73331325D5F0E621A76D0 /* FilterDefinition.swift */; };
 		E5307A8C040C5488F51DB28C /* BackgroundMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E6FCEAA40D095408FA43CD /* BackgroundMode.swift */; };
@@ -100,7 +99,91 @@
 		F88D72EEDC33DD0AC1DE730B /* TextRemovalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E530954C5ADC8E8ECF3C470 /* TextRemovalViewController.swift */; };
 		FB0A0339632B572D942476FC /* EnhancementViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DFFEFF6BB806B2EE0766492 /* EnhancementViewController.swift */; };
 				97C66AA6EA1E21073AB625BB /* SettingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE642A7697775B9677511F72 /* SettingViewController.swift */; };
+		C4F6AC10364E872C85DEF146 /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A3AE9080754BBC4944422BB /* ImageProcessor.swift */; };
+		00FCD6336909254F6CC0241E /* MaskBasedProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 359019DA3206D344C9CFCBD6 /* MaskBasedProcessor.swift */; };
+		E7A0051A525C5E607CCBA832 /* ProcessingResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AA9E3DD853D84061319066 /* ProcessingResult.swift */; };
+		EF8A2BED4475F82AFFBCFFAD /* ToolDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1766AF3A60AD0300CC30CD /* ToolDefinition.swift */; };
+		0F5F99B51443ADDC7827EBA9 /* ProcessingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5CD09F339B523530A03C4C1 /* ProcessingOptions.swift */; };
+		CCFB37A4EB28C81AFF9584CC /* ToolRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 145EEB79723E767C17778ECC /* ToolRegistry.swift */; };
+		C05AE18773EF53C5D0C89E00 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16D7B0F123D83F2F6E3AA37 /* ExportService.swift */; };
+		9229505E8A2624C002A4E84A /* ImagePickerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF0FC0EE1E9ADE0EA062CAE2 /* ImagePickerService.swift */; };
+		090D6E4715D8D1EFA098D50A /* EditHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20688FD5867FDB3B4E95FBBE /* EditHistoryService.swift */; };
+		CD252F14334F00B35CDC619C /* ProcessingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D181BCA2B607D91C2E8E1F /* ProcessingOverlay.swift */; };
+		1905A8CF3AE71486886A9B6C /* BaseEditingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B59C4B2D87810CD92C9B32 /* BaseEditingViewController.swift */; };
+		D5C74DCF008478436D80D5DA /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A8E91776C84870B9602A7C /* HomeViewController.swift */; };
+		A5FC4E5CA88C71B97A4AB69D /* ToolCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B04F523BFE97905A9F75C8A6 /* ToolCell.swift */; };
+		B6F06A9BE8E7561BCFAD7A6A /* InpaintProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A605E3DB04AEF9ADAD4D5D /* InpaintProcessor.swift */; };
+		6AFC3614039D8D6E0D59F3C3 /* InpaintViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EA8D72EF043CC193D20F36A /* InpaintViewController.swift */; };
+		43B8FDA0E031B63F95D9FD24 /* SAMSegmentHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A1692E732492334B700C2F /* SAMSegmentHelper.swift */; };
+		57FDED760063814684FC30E2 /* SelectionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4242CC588C89B1C040E1B77A /* SelectionOverlayView.swift */; };
+		0AEFF1713CFA7389685BE249 /* MosaicProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEDB53F8C6C96F4E34E521CA /* MosaicProcessor.swift */; };
+		1C10AA69577FD7B229F45DD8 /* MosaicViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D68126CC001AA01EDAD855D /* MosaicViewController.swift */; };
+		3A5D954C7E88892FA421A10B /* FaceDetectionHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90FFB070C4F9D4BF8D3E046 /* FaceDetectionHelper.swift */; };
+		96C6BE1F809953ABF91869AA /* DepthImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09495E1442BEF562368556A1 /* DepthImageProcessor.swift */; };
+		E5307A8C040C5488F51DB28C /* BackgroundMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E6FCEAA40D095408FA43CD /* BackgroundMode.swift */; };
+		9DE3262EA39341E72A340954 /* BackgroundRemovalProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C82D188CED584EBD8EFA46C4 /* BackgroundRemovalProcessor.swift */; };
+		52FD193E34082647973D78EC /* BackgroundRemovalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A220F0BFFC6E9AAA58C7A02D /* BackgroundRemovalViewController.swift */; };
+		9FCE4FA3D6B7E2C1ADC72CA0 /* EnhancementMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B936EDEA447DBE1885E7794 /* EnhancementMode.swift */; };
+		99CA43C0D421AD6F9656E2F3 /* EnhancementProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1612C98364845131B244E5 /* EnhancementProcessor.swift */; };
+		FB0A0339632B572D942476FC /* EnhancementViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DFFEFF6BB806B2EE0766492 /* EnhancementViewController.swift */; };
+		4842712D9B1F81ACABB5751D /* TileProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F610E6774E1E877FAE6FBC5C /* TileProcessor.swift */; };
+		366AB53400C8E86A185575A1 /* RealESRGANHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B8EBD6D919B4055F07644DB /* RealESRGANHelper.swift */; };
+		E39414E260794026D55B030F /* FilterDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F73331325D5F0E621A76D0 /* FilterDefinition.swift */; };
+		A24D7E5FDEDB660DE467B542 /* FilterProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CA65880F6907140789D4C3 /* FilterProcessor.swift */; };
+		0BBB5CC401781E700C62955D /* FilterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD88937317B645B17C8B2426 /* FilterViewController.swift */; };
+		5E9384115817F4E1EC6AB981 /* TextRemovalProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87EFAC771F0CD9AEFEAD57A5 /* TextRemovalProcessor.swift */; };
+		F88D72EEDC33DD0AC1DE730B /* TextRemovalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E530954C5ADC8E8ECF3C470 /* TextRemovalViewController.swift */; };
+		EFFC1CF16E1F020021FA22F0 /* SmartCropProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EE1EB45DCAF426768B310D /* SmartCropProcessor.swift */; };
+		569C61CC15C5098E4D1B7E65 /* SmartCropViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414719EC8B05C2B99513476A /* SmartCropViewController.swift */; };
+		C5D0D4D396646DEBE1149929 /* CropOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2DBC4BC5B6D316F823A105 /* CropOverlayView.swift */; };
+		AF185B9D4AB295A0BFEE2FE3 /* WatermarkConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2EE3AA4B6DDB9C3BCAD8926 /* WatermarkConfig.swift */; };
+		C7DCF776F28801E3BF86C6CF /* WatermarkProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7924937B0B67C3865930226 /* WatermarkProcessor.swift */; };
+		66B8ADAAC68186C87D55D621 /* WatermarkViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0ADF5CD92C207E5DBB26942 /* WatermarkViewController.swift */; };
+		3A9C18571CF89662EEE6975A /* HistoryCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010CEEA583BB1A89D2532775 /* HistoryCell.swift */; };
+		686312AEB13E45AF128EFE7F /* HistoryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32104B28024CF4F9ECC54C33 /* HistoryViewController.swift */; };
+		C4F6AC10364E872C85DEF146 /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A3AE9080754BBC4944422BB /* ImageProcessor.swift */; };
+		00FCD6336909254F6CC0241E /* MaskBasedProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 359019DA3206D344C9CFCBD6 /* MaskBasedProcessor.swift */; };
+		E7A0051A525C5E607CCBA832 /* ProcessingResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AA9E3DD853D84061319066 /* ProcessingResult.swift */; };
+		EF8A2BED4475F82AFFBCFFAD /* ToolDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1766AF3A60AD0300CC30CD /* ToolDefinition.swift */; };
+		0F5F99B51443ADDC7827EBA9 /* ProcessingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5CD09F339B523530A03C4C1 /* ProcessingOptions.swift */; };
+		CCFB37A4EB28C81AFF9584CC /* ToolRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 145EEB79723E767C17778ECC /* ToolRegistry.swift */; };
+		C05AE18773EF53C5D0C89E00 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16D7B0F123D83F2F6E3AA37 /* ExportService.swift */; };
+		9229505E8A2624C002A4E84A /* ImagePickerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF0FC0EE1E9ADE0EA062CAE2 /* ImagePickerService.swift */; };
+		090D6E4715D8D1EFA098D50A /* EditHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20688FD5867FDB3B4E95FBBE /* EditHistoryService.swift */; };
+		CD252F14334F00B35CDC619C /* ProcessingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D181BCA2B607D91C2E8E1F /* ProcessingOverlay.swift */; };
+		1905A8CF3AE71486886A9B6C /* BaseEditingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B59C4B2D87810CD92C9B32 /* BaseEditingViewController.swift */; };
+		D5C74DCF008478436D80D5DA /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A8E91776C84870B9602A7C /* HomeViewController.swift */; };
+		A5FC4E5CA88C71B97A4AB69D /* ToolCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B04F523BFE97905A9F75C8A6 /* ToolCell.swift */; };
+		B6F06A9BE8E7561BCFAD7A6A /* InpaintProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A605E3DB04AEF9ADAD4D5D /* InpaintProcessor.swift */; };
+		6AFC3614039D8D6E0D59F3C3 /* InpaintViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EA8D72EF043CC193D20F36A /* InpaintViewController.swift */; };
+		43B8FDA0E031B63F95D9FD24 /* SAMSegmentHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A1692E732492334B700C2F /* SAMSegmentHelper.swift */; };
+		57FDED760063814684FC30E2 /* SelectionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4242CC588C89B1C040E1B77A /* SelectionOverlayView.swift */; };
+		0AEFF1713CFA7389685BE249 /* MosaicProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEDB53F8C6C96F4E34E521CA /* MosaicProcessor.swift */; };
+		1C10AA69577FD7B229F45DD8 /* MosaicViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D68126CC001AA01EDAD855D /* MosaicViewController.swift */; };
+		3A5D954C7E88892FA421A10B /* FaceDetectionHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90FFB070C4F9D4BF8D3E046 /* FaceDetectionHelper.swift */; };
+		96C6BE1F809953ABF91869AA /* DepthImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09495E1442BEF562368556A1 /* DepthImageProcessor.swift */; };
+		E5307A8C040C5488F51DB28C /* BackgroundMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E6FCEAA40D095408FA43CD /* BackgroundMode.swift */; };
+		9DE3262EA39341E72A340954 /* BackgroundRemovalProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C82D188CED584EBD8EFA46C4 /* BackgroundRemovalProcessor.swift */; };
+		52FD193E34082647973D78EC /* BackgroundRemovalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A220F0BFFC6E9AAA58C7A02D /* BackgroundRemovalViewController.swift */; };
+		9FCE4FA3D6B7E2C1ADC72CA0 /* EnhancementMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B936EDEA447DBE1885E7794 /* EnhancementMode.swift */; };
+		99CA43C0D421AD6F9656E2F3 /* EnhancementProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D1612C98364845131B244E5 /* EnhancementProcessor.swift */; };
+		FB0A0339632B572D942476FC /* EnhancementViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DFFEFF6BB806B2EE0766492 /* EnhancementViewController.swift */; };
+		4842712D9B1F81ACABB5751D /* TileProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F610E6774E1E877FAE6FBC5C /* TileProcessor.swift */; };
+		366AB53400C8E86A185575A1 /* RealESRGANHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B8EBD6D919B4055F07644DB /* RealESRGANHelper.swift */; };
+		E39414E260794026D55B030F /* FilterDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F73331325D5F0E621A76D0 /* FilterDefinition.swift */; };
+		A24D7E5FDEDB660DE467B542 /* FilterProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CA65880F6907140789D4C3 /* FilterProcessor.swift */; };
+		0BBB5CC401781E700C62955D /* FilterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD88937317B645B17C8B2426 /* FilterViewController.swift */; };
+		5E9384115817F4E1EC6AB981 /* TextRemovalProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87EFAC771F0CD9AEFEAD57A5 /* TextRemovalProcessor.swift */; };
+		F88D72EEDC33DD0AC1DE730B /* TextRemovalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E530954C5ADC8E8ECF3C470 /* TextRemovalViewController.swift */; };
+		EFFC1CF16E1F020021FA22F0 /* SmartCropProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EE1EB45DCAF426768B310D /* SmartCropProcessor.swift */; };
+		569C61CC15C5098E4D1B7E65 /* SmartCropViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414719EC8B05C2B99513476A /* SmartCropViewController.swift */; };
+		C5D0D4D396646DEBE1149929 /* CropOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2DBC4BC5B6D316F823A105 /* CropOverlayView.swift */; };
 		D4DF8B242521A359CBC51215 /* WarmupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465FEB071C8AFB2308F17ABB /* WarmupViewController.swift */; };
+		AF185B9D4AB295A0BFEE2FE3 /* WatermarkConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2EE3AA4B6DDB9C3BCAD8926 /* WatermarkConfig.swift */; };
+		C7DCF776F28801E3BF86C6CF /* WatermarkProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7924937B0B67C3865930226 /* WatermarkProcessor.swift */; };
+		66B8ADAAC68186C87D55D621 /* WatermarkViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0ADF5CD92C207E5DBB26942 /* WatermarkViewController.swift */; };
+		3A9C18571CF89662EEE6975A /* HistoryCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010CEEA583BB1A89D2532775 /* HistoryCell.swift */; };
+		686312AEB13E45AF128EFE7F /* HistoryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32104B28024CF4F9ECC54C33 /* HistoryViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -187,7 +270,6 @@
 		85CF5DBC619910A0108151C8 /* Pods-Inpaint-InpaintUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Inpaint-InpaintUITests.debug.xcconfig"; path = "Target Support Files/Pods-Inpaint-InpaintUITests/Pods-Inpaint-InpaintUITests.debug.xcconfig"; sourceTree = "<group>"; };
 		87EFAC771F0CD9AEFEAD57A5 /* TextRemovalProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRemovalProcessor.swift; sourceTree = "<group>"; };
 		88D181BCA2B607D91C2E8E1F /* ProcessingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessingOverlay.swift; sourceTree = "<group>"; };
-		EEEEEEE12B50211C0008EF90 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		9E530954C5ADC8E8ECF3C470 /* TextRemovalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRemovalViewController.swift; sourceTree = "<group>"; };
 		A086FDD6FF2D80CF0E84BDE2 /* Pods-Inpaint.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Inpaint.release.xcconfig"; path = "Target Support Files/Pods-Inpaint/Pods-Inpaint.release.xcconfig"; sourceTree = "<group>"; };
 		A220F0BFFC6E9AAA58C7A02D /* BackgroundRemovalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRemovalViewController.swift; sourceTree = "<group>"; };
@@ -551,7 +633,6 @@
 			children = (
 				88D181BCA2B607D91C2E8E1F /* ProcessingOverlay.swift */,
 				F8B59C4B2D87810CD92C9B32 /* BaseEditingViewController.swift */,
-				EEEEEEE12B50211C0008EF90 /* EmptyStateView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -731,7 +812,6 @@
 			children = (
 				88D181BCA2B607D91C2E8E1F /* ProcessingOverlay.swift */,
 				F8B59C4B2D87810CD92C9B32 /* BaseEditingViewController.swift */,
-				EEEEEEE12B50211C0008EF90 /* EmptyStateView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -908,7 +988,6 @@
 			children = (
 				88D181BCA2B607D91C2E8E1F /* ProcessingOverlay.swift */,
 				F8B59C4B2D87810CD92C9B32 /* BaseEditingViewController.swift */,
-				EEEEEEE12B50211C0008EF90 /* EmptyStateView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1289,7 +1368,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C4F6AC10364E872C85DEF146 /* ImageProcessor.swift in Sources */,
+												C4F6AC10364E872C85DEF146 /* ImageProcessor.swift in Sources */,
 				00FCD6336909254F6CC0241E /* MaskBasedProcessor.swift in Sources */,
 				E7A0051A525C5E607CCBA832 /* ProcessingResult.swift in Sources */,
 				EF8A2BED4475F82AFFBCFFAD /* ToolDefinition.swift in Sources */,
@@ -1299,7 +1378,6 @@
 				9229505E8A2624C002A4E84A /* ImagePickerService.swift in Sources */,
 				090D6E4715D8D1EFA098D50A /* EditHistoryService.swift in Sources */,
 				CD252F14334F00B35CDC619C /* ProcessingOverlay.swift in Sources */,
-				EEEEEEE22B50211C0008EF90 /* EmptyStateView.swift in Sources */,
 				1905A8CF3AE71486886A9B6C /* BaseEditingViewController.swift in Sources */,
 				D5C74DCF008478436D80D5DA /* HomeViewController.swift in Sources */,
 				A5FC4E5CA88C71B97A4AB69D /* ToolCell.swift in Sources */,
@@ -1333,7 +1411,91 @@
 				66B8ADAAC68186C87D55D621 /* WatermarkViewController.swift in Sources */,
 				3A9C18571CF89662EEE6975A /* HistoryCell.swift in Sources */,
 				686312AEB13E45AF128EFE7F /* HistoryViewController.swift in Sources */,
-				97C66AA6EA1E21073AB625BB /* SettingViewController.swift in Sources */,
+C4F6AC10364E872C85DEF146 /* ImageProcessor.swift in Sources */,
+				00FCD6336909254F6CC0241E /* MaskBasedProcessor.swift in Sources */,
+				E7A0051A525C5E607CCBA832 /* ProcessingResult.swift in Sources */,
+				EF8A2BED4475F82AFFBCFFAD /* ToolDefinition.swift in Sources */,
+				0F5F99B51443ADDC7827EBA9 /* ProcessingOptions.swift in Sources */,
+				CCFB37A4EB28C81AFF9584CC /* ToolRegistry.swift in Sources */,
+				C05AE18773EF53C5D0C89E00 /* ExportService.swift in Sources */,
+				9229505E8A2624C002A4E84A /* ImagePickerService.swift in Sources */,
+				090D6E4715D8D1EFA098D50A /* EditHistoryService.swift in Sources */,
+				CD252F14334F00B35CDC619C /* ProcessingOverlay.swift in Sources */,
+				1905A8CF3AE71486886A9B6C /* BaseEditingViewController.swift in Sources */,
+				D5C74DCF008478436D80D5DA /* HomeViewController.swift in Sources */,
+				A5FC4E5CA88C71B97A4AB69D /* ToolCell.swift in Sources */,
+				B6F06A9BE8E7561BCFAD7A6A /* InpaintProcessor.swift in Sources */,
+				6AFC3614039D8D6E0D59F3C3 /* InpaintViewController.swift in Sources */,
+				43B8FDA0E031B63F95D9FD24 /* SAMSegmentHelper.swift in Sources */,
+				57FDED760063814684FC30E2 /* SelectionOverlayView.swift in Sources */,
+				0AEFF1713CFA7389685BE249 /* MosaicProcessor.swift in Sources */,
+				1C10AA69577FD7B229F45DD8 /* MosaicViewController.swift in Sources */,
+				3A5D954C7E88892FA421A10B /* FaceDetectionHelper.swift in Sources */,
+				96C6BE1F809953ABF91869AA /* DepthImageProcessor.swift in Sources */,
+				E5307A8C040C5488F51DB28C /* BackgroundMode.swift in Sources */,
+				9DE3262EA39341E72A340954 /* BackgroundRemovalProcessor.swift in Sources */,
+				52FD193E34082647973D78EC /* BackgroundRemovalViewController.swift in Sources */,
+				9FCE4FA3D6B7E2C1ADC72CA0 /* EnhancementMode.swift in Sources */,
+				99CA43C0D421AD6F9656E2F3 /* EnhancementProcessor.swift in Sources */,
+				FB0A0339632B572D942476FC /* EnhancementViewController.swift in Sources */,
+				4842712D9B1F81ACABB5751D /* TileProcessor.swift in Sources */,
+				366AB53400C8E86A185575A1 /* RealESRGANHelper.swift in Sources */,
+				E39414E260794026D55B030F /* FilterDefinition.swift in Sources */,
+				A24D7E5FDEDB660DE467B542 /* FilterProcessor.swift in Sources */,
+				0BBB5CC401781E700C62955D /* FilterViewController.swift in Sources */,
+				5E9384115817F4E1EC6AB981 /* TextRemovalProcessor.swift in Sources */,
+				F88D72EEDC33DD0AC1DE730B /* TextRemovalViewController.swift in Sources */,
+				EFFC1CF16E1F020021FA22F0 /* SmartCropProcessor.swift in Sources */,
+				569C61CC15C5098E4D1B7E65 /* SmartCropViewController.swift in Sources */,
+				C5D0D4D396646DEBE1149929 /* CropOverlayView.swift in Sources */,
+				AF185B9D4AB295A0BFEE2FE3 /* WatermarkConfig.swift in Sources */,
+				C7DCF776F28801E3BF86C6CF /* WatermarkProcessor.swift in Sources */,
+				66B8ADAAC68186C87D55D621 /* WatermarkViewController.swift in Sources */,
+				3A9C18571CF89662EEE6975A /* HistoryCell.swift in Sources */,
+				686312AEB13E45AF128EFE7F /* HistoryViewController.swift in Sources */,
+97C66AA6EA1E21073AB625BB /* SettingViewController.swift in Sources */,
+				C4F6AC10364E872C85DEF146 /* ImageProcessor.swift in Sources */,
+				00FCD6336909254F6CC0241E /* MaskBasedProcessor.swift in Sources */,
+				E7A0051A525C5E607CCBA832 /* ProcessingResult.swift in Sources */,
+				EF8A2BED4475F82AFFBCFFAD /* ToolDefinition.swift in Sources */,
+				0F5F99B51443ADDC7827EBA9 /* ProcessingOptions.swift in Sources */,
+				CCFB37A4EB28C81AFF9584CC /* ToolRegistry.swift in Sources */,
+				C05AE18773EF53C5D0C89E00 /* ExportService.swift in Sources */,
+				9229505E8A2624C002A4E84A /* ImagePickerService.swift in Sources */,
+				090D6E4715D8D1EFA098D50A /* EditHistoryService.swift in Sources */,
+				CD252F14334F00B35CDC619C /* ProcessingOverlay.swift in Sources */,
+				1905A8CF3AE71486886A9B6C /* BaseEditingViewController.swift in Sources */,
+				D5C74DCF008478436D80D5DA /* HomeViewController.swift in Sources */,
+				A5FC4E5CA88C71B97A4AB69D /* ToolCell.swift in Sources */,
+				B6F06A9BE8E7561BCFAD7A6A /* InpaintProcessor.swift in Sources */,
+				6AFC3614039D8D6E0D59F3C3 /* InpaintViewController.swift in Sources */,
+				43B8FDA0E031B63F95D9FD24 /* SAMSegmentHelper.swift in Sources */,
+				57FDED760063814684FC30E2 /* SelectionOverlayView.swift in Sources */,
+				0AEFF1713CFA7389685BE249 /* MosaicProcessor.swift in Sources */,
+				1C10AA69577FD7B229F45DD8 /* MosaicViewController.swift in Sources */,
+				3A5D954C7E88892FA421A10B /* FaceDetectionHelper.swift in Sources */,
+				96C6BE1F809953ABF91869AA /* DepthImageProcessor.swift in Sources */,
+				E5307A8C040C5488F51DB28C /* BackgroundMode.swift in Sources */,
+				9DE3262EA39341E72A340954 /* BackgroundRemovalProcessor.swift in Sources */,
+				52FD193E34082647973D78EC /* BackgroundRemovalViewController.swift in Sources */,
+				9FCE4FA3D6B7E2C1ADC72CA0 /* EnhancementMode.swift in Sources */,
+				99CA43C0D421AD6F9656E2F3 /* EnhancementProcessor.swift in Sources */,
+				FB0A0339632B572D942476FC /* EnhancementViewController.swift in Sources */,
+				4842712D9B1F81ACABB5751D /* TileProcessor.swift in Sources */,
+				366AB53400C8E86A185575A1 /* RealESRGANHelper.swift in Sources */,
+				E39414E260794026D55B030F /* FilterDefinition.swift in Sources */,
+				A24D7E5FDEDB660DE467B542 /* FilterProcessor.swift in Sources */,
+				0BBB5CC401781E700C62955D /* FilterViewController.swift in Sources */,
+				5E9384115817F4E1EC6AB981 /* TextRemovalProcessor.swift in Sources */,
+				F88D72EEDC33DD0AC1DE730B /* TextRemovalViewController.swift in Sources */,
+				EFFC1CF16E1F020021FA22F0 /* SmartCropProcessor.swift in Sources */,
+				569C61CC15C5098E4D1B7E65 /* SmartCropViewController.swift in Sources */,
+				C5D0D4D396646DEBE1149929 /* CropOverlayView.swift in Sources */,
+				AF185B9D4AB295A0BFEE2FE3 /* WatermarkConfig.swift in Sources */,
+				C7DCF776F28801E3BF86C6CF /* WatermarkProcessor.swift in Sources */,
+				66B8ADAAC68186C87D55D621 /* WatermarkViewController.swift in Sources */,
+				3A9C18571CF89662EEE6975A /* HistoryCell.swift in Sources */,
+				686312AEB13E45AF128EFE7F /* HistoryViewController.swift in Sources */,
 				11C1FA2F2B1C80FE0021EA5F /* SplitImageView.swift in Sources */,
 				115EF1EF2B49127C00F4C420 /* DepthImageRender.metal in Sources */,
 				11AE81E82B2A0043000F95C4 /* InpaintingViewController.swift in Sources */,
@@ -1349,6 +1511,7 @@
 				11F2B99E2B583084001318F5 /* PurchaseManager.swift in Sources */,
 				115EF1E92B48F6EB00F4C420 /* DepthImageSence.swift in Sources */,
 				11F2B95B2B556F71001318F5 /* AVDepthData+Utils.swift in Sources */,
+
 				11F2B95C2B556F71001318F5 /* CGImageSource+Depth.swift in Sources */,
 				11CFF9F32B18D9FF008CFCA5 /* AppDelegate.swift in Sources */,
 				1192515B2B366F6500F72E5D /* CGRect.swift in Sources */,

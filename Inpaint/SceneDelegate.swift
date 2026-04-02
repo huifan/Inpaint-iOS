@@ -10,28 +10,19 @@ import UIKit
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
-    private let hasLaunchedBeforeKey = "hasLaunchedBefore"
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         let window = UIWindow(windowScene: windowScene)
-        let isFirstLaunch = !UserDefaults.standard.bool(forKey: hasLaunchedBeforeKey)
-
-        let homeVC = HomeViewController()
-        window.rootViewController = UINavigationController(rootViewController: homeVC)
+        let isFirstLaunch = !UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
+        if isFirstLaunch {
+            window.rootViewController = WarmupViewController()
+        } else {
+            let homeVC = HomeViewController()
+            window.rootViewController = UINavigationController(rootViewController: homeVC)
+        }
         window.makeKeyAndVisible()
         self.window = window
-
-        if isFirstLaunch {
-            UserDefaults.standard.set(true, forKey: hasLaunchedBeforeKey)
-            startBackgroundWarmup()
-        }
-    }
-
-    private func startBackgroundWarmup() {
-        DispatchQueue.global(qos: .utility).async {
-            _ = LaMaImageInpenting.shared
-        }
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
@@ -64,3 +55,4 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 
 }
+

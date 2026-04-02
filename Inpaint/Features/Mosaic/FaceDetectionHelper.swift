@@ -68,18 +68,9 @@ final class FaceDetectionHelper {
     ) -> [CGRect] {
         normalizedBoxes.map { box in
             let rect = convertBox(box, to: imageSize)
-            let horizontalPadding = rect.width * max(padding, 0.35)
-            let topPadding = rect.height * max(padding * 1.4, 0.45)
-            let bottomPadding = rect.height * max(padding * 0.8, 0.2)
-
-            let expanded = CGRect(
-                x: rect.minX - horizontalPadding,
-                y: rect.minY - topPadding,
-                width: rect.width + horizontalPadding * 2,
-                height: rect.height + topPadding + bottomPadding
-            )
-
-            return expanded.intersection(CGRect(origin: .zero, size: imageSize))
+            let padX = rect.width * padding
+            let padY = rect.height * padding
+            return rect.insetBy(dx: -padX, dy: -padY)
         }
     }
 }

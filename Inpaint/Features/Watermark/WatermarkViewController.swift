@@ -10,20 +10,12 @@ import SnapKit
 
 class WatermarkViewController: BaseEditingViewController {
 
+    override var toolID: String { "watermark" }
+
     private let processor = WatermarkProcessor()
     private var config = WatermarkConfig.defaultText()
     private var watermarkOverlay: WatermarkOverlayView!
     private var imagePicker: ImagePickerService?
-
-    // MARK: - Init
-
-    @MainActor override init(toolID: String) {
-        super.init(toolID: toolID)
-    }
-
-    @MainActor required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
 
     // MARK: - Toolbar controls
 
@@ -79,21 +71,6 @@ class WatermarkViewController: BaseEditingViewController {
     // MARK: - Setup
 
     override func setupToolUI() {
-        if !isImageSelected {
-            setupEmptyState(config: EmptyStateConfig(
-                toolID: toolID,
-                iconName: "signature",
-                titleKey: "empty_watermark_title",
-                descriptionKey: "empty_watermark_description",
-                buttonTitleKey: "select_photo"
-            ))
-            return
-        }
-
-        setupWatermarkUI()
-    }
-
-    private func setupWatermarkUI() {
         watermarkOverlay = WatermarkOverlayView(config: config)
         watermarkOverlay.delegate = self
         watermarkOverlay.imageSize = imageView.image?.size ?? .zero
@@ -108,35 +85,11 @@ class WatermarkViewController: BaseEditingViewController {
                                                name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
     }
 
-    // MARK: - Empty State
-
-    override func presentImagePicker() {
-        pickImageFromLibrary { [weak self] image in
-            guard let self else { return }
-            let scaledImage = image.scaleToLimit(size: CGSize(width: kLimitImageSize, height: kLimitImageSize))
-            self.setImage(scaledImage)
-        }
-    }
-
-    override func didSetImage() {
-        setupWatermarkUI()
-    }
-
-    override func resetEditState() {
-        super.resetEditState()
-        config = WatermarkConfig.defaultText()
-        watermarkOverlay?.removeFromSuperview()
-        watermarkOverlay = nil
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    // MARK: - Navigation
-
     override func setupNavigationItems() {
-        setupUnifiedNavigationItems()
-
-        let applyButton = UIBarButtonItem(title: *"apply", style: .done, target: self, action: #selector(onApply))
-        navigationItem.rightBarButtonItems = buildRightBarButtonItems(primaryItems: [applyButton])
+        let applyButton = UIBarButtonItem(title: *"apply", style: .plain, target: self, action: #selector(onApply))
+        let saveButton = UIBarButtonItem(title: *"save_to_photo_lib", style: .plain, target: self, action: #selector(onSave))
+        compareButton = makeCompareButton()
+        navigationItem.rightBarButtonItems = [compareButton!, saveButton, applyButton, undoButton]
     }
 
     @objc private func onApply() {

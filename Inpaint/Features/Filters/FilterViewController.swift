@@ -11,23 +11,12 @@ import Toast_Swift
 
 class FilterViewController: BaseEditingViewController {
 
+    override var toolID: String { "photo_filter" }
+
     private let processor = FilterProcessor()
     private var selectedFilterID = "original"
     private var intensity: Float = 1.0
     private var isProcessing = false
-    private var pendingPreviewUpdate = false
-    private var previewWorkItem: DispatchWorkItem?
-    private weak var bottomToolbar: UIView?
-
-    // MARK: - Init
-
-    @MainActor override init(toolID: String) {
-        super.init(toolID: toolID)
-    }
-
-    @MainActor required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
 
     // MARK: - UI
 
@@ -67,29 +56,14 @@ class FilterViewController: BaseEditingViewController {
     // MARK: - Setup
 
     override func setupToolUI() {
-        if !isImageSelected {
-            setupEmptyState(config: EmptyStateConfig(
-                toolID: toolID,
-                iconName: "camera.filters",
-                titleKey: "empty_filter_title",
-                descriptionKey: "empty_filter_description",
-                buttonTitleKey: "select_photo"
-            ))
-            return
-        }
-
-        setupFilterUI()
-    }
-
-    private func setupFilterUI() {
+        // Apply initial filter (original - no change)
+        imageView.image = originalImage
         setupBottomToolbar()
     }
 
     private func setupBottomToolbar() {
-        bottomToolbar?.removeFromSuperview()
         let toolbar = UIView()
         toolbar.backgroundColor = .systemBackground
-        bottomToolbar = toolbar
         view.addSubview(toolbar)
 
         toolbar.addSubview(filterCollectionView)
@@ -126,70 +100,39 @@ class FilterViewController: BaseEditingViewController {
     }
 
     override func setupNavigationItems() {
-        setupUnifiedNavigationItems()
-
-        let applyButton = UIBarButtonItem(title: *"apply", style: .done, target: self, action: #selector(onApply))
+        let backButton = UIBarButtonItem(title: *"back", style: .plain, target: self, action: #selector(onBack))
+        let applyButton = UIBarButtonItem(title: *"apply", style: .plain, target: self, action: #selector(onApply))
         compareButton = makeCompareButton()
-        navigationItem.rightBarButtonItems = buildRightBarButtonItems(primaryItems: [applyButton, undoButton])
-    }
+        undoButton.isEnabled = false
 
-    // MARK: - Empty State
-
-    override func presentImagePicker() {
-        pickImageFromLibrary { [weak self] image in
-            guard let self else { return }
-            let scaledImage = image.scaleToLimit(size: CGSize(width: kLimitImageSize, height: kLimitImageSize))
-            self.setImage(scaledImage)
-        }
-    }
-
-    override func didSetImage() {
-        setupFilterUI()
-        // Apply initial filter (original - no change)
-        if let original = originalImage {
-            imageView.image = original
-        }
-        intensitySlider.value = intensity
-        filterCollectionView.reloadData()
-    }
-
-    override func resetEditState() {
-        super.resetEditState()
-        selectedFilterID = "original"
-        intensity = 1.0
+        navigationItem.leftBarButtonItems = [backButton]
+        navigationItem.rightBarButtonItems = [compareButton!, applyButton, undoButton]
     }
 
     // MARK: - Actions
 
+    @objc private func onBack() {
+        navigationController?.popViewController(animated: true)
+    }
+
     @objc private func intensityChanged(_ sender: UISlider) {
         intensity = sender.value
-        scheduleFilterPreview()
+        applySelectedFilter()
     }
 
     @objc private func onApply() {
-        guard let currentImage = imageView.image, let original = originalImage else { return }
-        pushUndo(original)
+        guard let currentImage = imageView.image else { return }
+        pushUndo(originalImage)
         imageView.image = currentImage
         undoButton.isEnabled = true
         view.makeToast(*"filter_applied", duration: 2.0, position: .bottom)
     }
 
-    private func scheduleFilterPreview(delay: TimeInterval = 0.08) {
-        previewWorkItem?.cancel()
-        let workItem = DispatchWorkItem { [weak self] in
-            self?.applySelectedFilter()
-        }
-        previewWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
-    }
-
     private func applySelectedFilter() {
-        guard let original = originalImage else { return }
-        guard !isProcessing else {
-            pendingPreviewUpdate = true
-            return
-        }
+        guard !isProcessing else { return }
         isProcessing = true
+
+        showProcessing(message: *"processing")
 
         let options = ProcessingOptions([
             "filterID": selectedFilterID,
@@ -197,19 +140,16 @@ class FilterViewController: BaseEditingViewController {
         ])
 
         processor.process(
-            input: ProcessingInput(image: original),
+            input: ProcessingInput(image: originalImage),
             options: options
         ) { [weak self] result in
             guard let self = self else { return }
             self.isProcessing = false
+            self.hideProcessing()
             if let output = result.outputImage {
                 self.imageView.image = output
             } else if let error = result.error {
                 self.view.makeToast(error.localizedDescription, duration: 3.0, position: .bottom)
-            }
-            if self.pendingPreviewUpdate {
-                self.pendingPreviewUpdate = false
-                self.scheduleFilterPreview(delay: 0)
             }
         }
     }
@@ -225,9 +165,7 @@ extension FilterViewController: UICollectionViewDataSource, UICollectionViewDele
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: FilterCell.reuseID, for: indexPath) as! FilterCell
         let filter = FilterDefinition.allFilters[indexPath.item]
-        if let original = originalImage {
-            cell.configure(with: filter, originalImage: original)
-        }
+        cell.configure(with: filter, originalImage: originalImage)
         return cell
     }
 
@@ -235,7 +173,7 @@ extension FilterViewController: UICollectionViewDataSource, UICollectionViewDele
         let filter = FilterDefinition.allFilters[indexPath.item]
         selectedFilterID = filter.identifier
         intensityLabel.text = filter.nameKey
-        scheduleFilterPreview(delay: 0)
+        applySelectedFilter()
     }
 }
 
