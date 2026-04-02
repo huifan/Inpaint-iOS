@@ -244,35 +244,30 @@ class HomeViewController: UIViewController {
     }
 
     private func pickImageForTool(_ toolID: String) {
-        selectedToolID = toolID
-        imagePicker.pickImage(from: self) { [weak self] image in
-            guard let self = self, let image = image else { return }
-            let scaledImage = image.scaleToLimit(size: CGSize(width: kLimitImageSize, height: kLimitImageSize))
-            self.navigateToEditor(toolID: self.selectedToolID ?? toolID, image: scaledImage)
-        }
+        navigateToEditor(toolID: toolID)
     }
 
-    private func navigateToEditor(toolID: String, image: UIImage) {
+    private func navigateToEditor(toolID: String) {
         let vc: UIViewController
         switch toolID {
         case "inpainting":
-            vc = InpaintViewController(image: image)
+            vc = InpaintViewController(toolID: toolID)
         case "background_removal":
-            vc = BackgroundRemovalViewController(image: image)
+            vc = BackgroundRemovalViewController(toolID: toolID)
         case "image_enhance":
-            vc = EnhancementViewController(image: image)
+            vc = EnhancementViewController(toolID: toolID)
         case "mosaic":
-            vc = MosaicViewController(image: image)
+            vc = MosaicViewController(toolID: toolID)
         case "photo_filter":
-            vc = FilterViewController(image: image)
+            vc = FilterViewController(toolID: toolID)
         case "text_removal":
-            vc = TextRemovalViewController(image: image)
+            vc = TextRemovalViewController(toolID: toolID)
         case "smart_crop":
-            vc = SmartCropViewController(image: image)
+            vc = SmartCropViewController(toolID: toolID)
         case "depth_image":
-            vc = DeepImageViewController(image: image)
+            vc = DeepImageViewController(toolID: toolID)
         case "watermark":
-            vc = WatermarkViewController(image: image)
+            vc = WatermarkViewController(toolID: toolID)
         default:
             return
         }

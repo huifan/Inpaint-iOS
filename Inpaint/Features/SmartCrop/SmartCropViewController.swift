@@ -11,8 +11,6 @@ import Toast_Swift
 
 class SmartCropViewController: BaseEditingViewController {
 
-    override var toolID: String { "smart_crop" }
-
     private let processor = SmartCropProcessor()
 
     enum AspectRatio: CaseIterable {
@@ -47,6 +45,16 @@ class SmartCropViewController: BaseEditingViewController {
     private var cropOverlay: CropOverlayView?
     private var initialCropRect: CGRect = .zero
 
+    // MARK: - Init
+
+    @MainActor override init(toolID: String) {
+        super.init(toolID: toolID)
+    }
+
+    @MainActor required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     // MARK: - UI
 
     private lazy var ratioButtons: [UIButton] = {
@@ -71,6 +79,21 @@ class SmartCropViewController: BaseEditingViewController {
     // MARK: - Setup
 
     override func setupToolUI() {
+        if !isImageSelected {
+            setupEmptyState(config: EmptyStateConfig(
+                toolID: toolID,
+                iconName: "crop",
+                titleKey: "empty_smart_crop_title",
+                descriptionKey: "empty_smart_crop_description",
+                buttonTitleKey: "select_photo"
+            ))
+            return
+        }
+
+        setupSmartCropUI()
+    }
+
+    private func setupSmartCropUI() {
         // Disable zoom for crop
         scrollView.minimumZoomScale = 1.0
         scrollView.maximumZoomScale = 1.0
@@ -80,8 +103,9 @@ class SmartCropViewController: BaseEditingViewController {
     }
 
     private func setupCropOverlay() {
+        guard let original = originalImage else { return }
         let viewSize = imageView.bounds.size
-        let imageSize = originalImage.size
+        let imageSize = original.size
 
         // Calculate initial crop rect (with padding)
         let padding: CGFloat = 0.1
@@ -142,26 +166,45 @@ class SmartCropViewController: BaseEditingViewController {
     }
 
     override func setupNavigationItems() {
-        let backButton = UIBarButtonItem(title: *"back", style: .plain, target: self, action: #selector(onBack))
-        let cropButton = UIBarButtonItem(title: *"crop_done", style: .done, target: self, action: #selector(onCrop))
-        compareButton = makeCompareButton()
+        setupUnifiedNavigationItems()
 
-        navigationItem.leftBarButtonItems = [backButton]
-        navigationItem.rightBarButtonItems = [compareButton!, cropButton]
+        let cropButton = UIBarButtonItem(title: *"crop_done", style: .done, target: self, action: #selector(onCrop))
+        navigationItem.rightBarButtonItems = buildRightBarButtonItems(primaryItems: [cropButton])
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         // Show crop overlay when view appears
+        if isImageSelected {
+            cropOverlay?.isHidden = false
+            updateRatioButtonStates()
+        }
+    }
+
+    // MARK: - Empty State
+
+    override func presentImagePicker() {
+        pickImageFromLibrary { [weak self] image in
+            guard let self else { return }
+            let scaledImage = image.scaleToLimit(size: CGSize(width: kLimitImageSize, height: kLimitImageSize))
+            self.setImage(scaledImage)
+        }
+    }
+
+    override func didSetImage() {
+        setupSmartCropUI()
         cropOverlay?.isHidden = false
         updateRatioButtonStates()
     }
 
-    // MARK: - Actions
-
-    @objc private func onBack() {
-        navigationController?.popViewController(animated: true)
+    override func resetEditState() {
+        super.resetEditState()
+        currentRatio = .free
+        cropOverlay?.removeFromSuperview()
+        cropOverlay = nil
     }
+
+    // MARK: - Actions
 
     @objc private func ratioButtonTapped(_ sender: UIButton) {
         let ratio = AspectRatio.allCases[sender.tag]
@@ -197,8 +240,9 @@ class SmartCropViewController: BaseEditingViewController {
 
         Task {
             do {
+                guard let img = originalImage else { return }
                 // Try to detect faces first
-                let faces = try await processor.detectFaces(in: originalImage)
+                let faces = try await processor.detectFaces(in: img)
 
                 await MainActor.run {
                     if !faces.isEmpty {
@@ -219,6 +263,7 @@ class SmartCropViewController: BaseEditingViewController {
     }
 
     private func applyCropForFaces(_ faces: [CGRect]) {
+        guard let img = originalImage else { return }
         hideProcessing()
 
         // Calculate bounding rect that contains all faces
@@ -232,7 +277,7 @@ class SmartCropViewController: BaseEditingViewController {
         let expandedRect = unionRect.insetBy(dx: -unionRect.width * padding, dy: -unionRect.height * padding)
 
         // Convert to view coordinates
-        let viewCropRect = cropRectForImageRect(expandedRect, imageSize: originalImage.size, viewSize: imageView.bounds.size)
+        let viewCropRect = cropRectForImageRect(expandedRect, imageSize: img.size, viewSize: imageView.bounds.size)
 
         // Apply aspect ratio constraint
         var finalRect = viewCropRect
@@ -258,11 +303,12 @@ class SmartCropViewController: BaseEditingViewController {
     }
 
     private func applySaliencyCrop() {
+        guard let img = originalImage else { return }
         hideProcessing()
 
         // Default to a centered crop with padding
         let padding: CGFloat = 0.15
-        let imageSize = originalImage.size
+        let imageSize = img.size
         let aspectFitScale = min(imageView.bounds.width / imageSize.width, imageView.bounds.height / imageSize.height)
         let scaledImageSize = CGSize(
             width: imageSize.width * aspectFitScale,
@@ -311,19 +357,19 @@ class SmartCropViewController: BaseEditingViewController {
     }
 
     @objc private func onCrop() {
-        guard let overlay = cropOverlay else { return }
+        guard let overlay = cropOverlay, let img = originalImage else { return }
 
         let imageCropRect = overlay.cropRectInImageCoordinates(
-            imageSize: originalImage.size,
+            imageSize: img.size,
             viewSize: imageView.bounds.size
         )
 
-        pushUndo(originalImage)
+        pushUndo(img)
 
         let options = ProcessingOptions(["cropRect": imageCropRect])
 
         processor.process(
-            input: ProcessingInput(image: originalImage),
+            input: ProcessingInput(image: img),
             options: options
         ) { [weak self] result in
             guard let self = self else { return }

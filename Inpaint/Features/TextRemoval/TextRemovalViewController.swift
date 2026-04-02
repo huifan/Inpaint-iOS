@@ -11,12 +11,20 @@ import Toast_Swift
 
 class TextRemovalViewController: BaseEditingViewController {
 
-    override var toolID: String { "text_removal" }
-
     private let processor = TextRemovalProcessor()
     private var detectedTextRects: [CGRect] = []
     private var selectedRects: Set<Int> = []
     private var textOverlayViews: [TextRegionView] = []
+
+    // MARK: - Init
+
+    @MainActor override init(toolID: String) {
+        super.init(toolID: toolID)
+    }
+
+    @MainActor required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     // MARK: - UI
 
@@ -60,6 +68,21 @@ class TextRemovalViewController: BaseEditingViewController {
     // MARK: - Setup
 
     override func setupToolUI() {
+        if !isImageSelected {
+            setupEmptyState(config: EmptyStateConfig(
+                toolID: toolID,
+                iconName: "text.magnifyingglass",
+                titleKey: "empty_text_removal_title",
+                descriptionKey: "empty_text_removal_description",
+                buttonTitleKey: "select_photo"
+            ))
+            return
+        }
+
+        setupTextRemovalUI()
+    }
+
+    private func setupTextRemovalUI() {
         processor.preload()
 
         imageView.addSubview(drawView)
@@ -79,11 +102,6 @@ class TextRemovalViewController: BaseEditingViewController {
         }
 
         setupBottomToolbar()
-
-        // Auto-detect text on entry
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.onDetectText()
-        }
     }
 
     private func setupBottomToolbar() {
@@ -115,24 +133,44 @@ class TextRemovalViewController: BaseEditingViewController {
     }
 
     override func setupNavigationItems() {
-        let backButton = UIBarButtonItem(title: *"back", style: .plain, target: self, action: #selector(onBack))
-        let removeButton = UIBarButtonItem(title: *"text_remove", style: .plain, target: self, action: #selector(onRemove))
+        setupUnifiedNavigationItems()
+
+        let removeButton = UIBarButtonItem(title: *"text_remove", style: .done, target: self, action: #selector(onRemove))
         compareButton = makeCompareButton()
-        undoButton.isEnabled = false
+        navigationItem.rightBarButtonItems = buildRightBarButtonItems(primaryItems: [removeButton, undoButton])
+    }
 
-        // Save menu from parent
-        let saveMenu = createSaveMenu()
-        let saveButton = UIBarButtonItem(title: *"save_to_photo_lib", menu: saveMenu)
+    // MARK: - Empty State
 
-        navigationItem.leftBarButtonItems = [backButton]
-        navigationItem.rightBarButtonItems = [saveButton, compareButton!, removeButton, undoButton]
+    override func presentImagePicker() {
+        pickImageFromLibrary { [weak self] image in
+            guard let self else { return }
+            let scaledImage = image.scaleToLimit(size: CGSize(width: kLimitImageSize, height: kLimitImageSize))
+            self.setImage(scaledImage)
+        }
+    }
+
+    override func didSetImage() {
+        setupTextRemovalUI()
+        // Auto-detect text on entry
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.onDetectText()
+        }
+    }
+
+    override func resetEditState() {
+        super.resetEditState()
+        detectedTextRects.removeAll()
+        selectedRects.removeAll()
+        for view in textOverlayViews {
+            view.removeFromSuperview()
+        }
+        textOverlayViews.removeAll()
+        hasPerformedRemoval = false
+        drawView.clean()
     }
 
     // MARK: - Actions
-
-    @objc private func onBack() {
-        navigationController?.popViewController(animated: true)
-    }
 
     @objc private func onDetectText() {
         guard !hasPerformedRemoval else {
@@ -143,7 +181,8 @@ class TextRemovalViewController: BaseEditingViewController {
 
         Task {
             do {
-                let normalizedImage = originalImage.normalizedOrientation()
+                guard let img = originalImage else { return }
+                let normalizedImage = img.normalizedOrientation()
                 let rects = try await processor.detectText(in: normalizedImage)
 
                 await MainActor.run {
@@ -190,8 +229,10 @@ class TextRemovalViewController: BaseEditingViewController {
         textOverlayViews.forEach { $0.removeFromSuperview() }
         textOverlayViews.removeAll()
 
+        guard let img = originalImage else { return }
+
         // Calculate offset for aspect-fit image
-        let imageSize = originalImage.size
+        let imageSize = img.size
         let viewSize = imageView.bounds.size
         let aspectFitScale = min(viewSize.width / imageSize.width, viewSize.height / imageSize.height)
         let offsetX = (viewSize.width - imageSize.width * aspectFitScale) / 2

@@ -12,8 +12,6 @@ import Toast_Swift
 
 class InpaintViewController: BaseEditingViewController {
 
-    override var toolID: String { "inpainting" }
-
     private let processor = InpaintProcessor()
     private let samHelper = SAMSegmentHelper.shared
 
@@ -36,6 +34,16 @@ class InpaintViewController: BaseEditingViewController {
 
     // Progress simulation
     private var progressTimer: Timer?
+
+    // MARK: - Init
+
+    @MainActor override init(toolID: String) {
+        super.init(toolID: toolID)
+    }
+
+    @MainActor required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     // MARK: - Setup
 
@@ -70,6 +78,21 @@ class InpaintViewController: BaseEditingViewController {
     }()
 
     override func setupToolUI() {
+        if !isImageSelected {
+            setupEmptyState(config: EmptyStateConfig(
+                toolID: toolID,
+                iconName: "wand.and.stars",
+                titleKey: "empty_inpaint_title",
+                descriptionKey: "empty_inpaint_description",
+                buttonTitleKey: "select_photo"
+            ))
+            return
+        }
+
+        setupInpaintUI()
+    }
+
+    private func setupInpaintUI() {
         // Preload model synchronously on first setup
         processor.preload()
 
@@ -164,6 +187,29 @@ class InpaintViewController: BaseEditingViewController {
         applyInteractionMode()
     }
 
+    // MARK: - Empty State Delegate
+
+    override func presentImagePicker() {
+        pickImageFromLibrary { [weak self] image in
+            guard let self else { return }
+            let scaledImage = image.scaleToLimit(size: CGSize(width: kLimitImageSize, height: kLimitImageSize))
+            self.setImage(scaledImage)
+        }
+    }
+
+    // MARK: - Image Set
+
+    override func didSetImage() {
+        setupInpaintUI()
+    }
+
+    override func resetEditState() {
+        super.resetEditState()
+        drawView.clean()
+        selectionOverlay.clearSelections()
+        hasWarned = false
+    }
+
     // MARK: - Undo (涂抹笔画 + 消除操作)
 
     override func onUndo() {
@@ -183,27 +229,14 @@ class InpaintViewController: BaseEditingViewController {
     }
 
     override func setupNavigationItems() {
-        undoButton.isEnabled = false
+        setupUnifiedNavigationItems()
 
-        // Back button
-        let backButton = UIBarButtonItem(title: *"back", style: .plain, target: self, action: #selector(onBack))
-
-        let inpaintButton = UIBarButtonItem(title: *"inpaint", style: .plain, target: self, action: #selector(onInpaint))
-        let saveButton = UIBarButtonItem(title: *"save_to_photo_lib", style: .plain, target: self, action: #selector(onSave))
+        let inpaintButton = UIBarButtonItem(title: *"inpaint", style: .done, target: self, action: #selector(onInpaint))
         compareButton = makeCompareButton()
-
-        // Left side: back
-        navigationItem.leftBarButtonItems = [backButton]
-
-        // Right side: compare, save, inpaint, undo
-        navigationItem.rightBarButtonItems = [compareButton!, saveButton, inpaintButton, undoButton]
+        navigationItem.rightBarButtonItems = buildRightBarButtonItems(primaryItems: [inpaintButton, undoButton])
     }
 
     // MARK: - Actions
-
-    @objc private func onBack() {
-        navigationController?.popViewController(animated: true)
-    }
 
     @objc private func toggleMode() {
         isDrawMode.toggle()
@@ -211,10 +244,11 @@ class InpaintViewController: BaseEditingViewController {
 
     private func applyInteractionMode() {
         if isDrawMode {
-            // 涂抹模式：单指涂抹，禁止滚动/缩放
+            // 涂抹模式：单指涂抹，同时允许双指平移和缩放，便于细节处理
             drawView.isUserInteractionEnabled = true
-            scrollView.isScrollEnabled = false
-            scrollView.pinchGestureRecognizer?.isEnabled = false
+            scrollView.isScrollEnabled = true
+            scrollView.pinchGestureRecognizer?.isEnabled = true
+            scrollView.panGestureRecognizer.minimumNumberOfTouches = 2
             modeToggleButton.setImage(UIImage(systemName: "pencil.tip"), for: .normal)
             modeToggleButton.backgroundColor = .systemBlue
         } else {
@@ -242,6 +276,18 @@ class InpaintViewController: BaseEditingViewController {
         }
         brushPreview.layer.cornerRadius = displaySize / 2.0
         brushSizeLabel.text = "\(Int(size))"
+    }
+
+    override func didBeginZoomingImage() {
+        drawView.layer.shouldRasterize = true
+        drawView.layer.rasterizationScale = UIScreen.main.scale
+        selectionOverlay.layer.shouldRasterize = true
+        selectionOverlay.layer.rasterizationScale = UIScreen.main.scale
+    }
+
+    override func didEndZoomingImage() {
+        drawView.layer.shouldRasterize = false
+        selectionOverlay.layer.shouldRasterize = false
     }
 
     // MARK: - Tap to Select (SAM)
